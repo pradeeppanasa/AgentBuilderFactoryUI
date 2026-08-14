@@ -17,6 +17,7 @@ import type {
   VersionListResponse,
 } from "@/types/agent";
 import type { DeploymentListResponse } from "@/types/deployment";
+import type { PlaygroundRequest, PlaygroundResponse } from "@/types/playground";
 
 export interface ListAgentsParams {
   status?: AgentStatus;
@@ -125,6 +126,17 @@ export async function listAgentDeployments(
 ): Promise<DeploymentListResponse> {
   const { data } = await httpClient.get<DeploymentListResponse>(
     `/agents/${agentId}/deployments`,
+  );
+  return data;
+}
+
+export async function invokePlayground(
+  agentId: string,
+  request: PlaygroundRequest,
+): Promise<PlaygroundResponse> {
+  const { data } = await httpClient.post<PlaygroundResponse>(
+    `/agents/${agentId}/playground`,
+    request,
   );
   return data;
 }

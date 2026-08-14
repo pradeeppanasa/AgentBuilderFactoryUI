@@ -1,14 +1,26 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Info } from "lucide-react";
+import { ChevronDown, ChevronRight, Info } from "lucide-react";
 import { createAgent } from "@/api/agents";
 import { getModelCatalog } from "@/api/platform";
-import { Button, LoadingSpinner } from "@/components/common";
+import { Button, InfoTooltip, LoadingSpinner, Slider } from "@/components/common";
 import { cn } from "@/lib/utils";
+
+function describeTemperature(value: number): string {
+  if (value <= 0.3) return "More precise — focused, consistent answers";
+  if (value >= 0.8) return "More creative — varied, exploratory answers";
+  return "Balanced between precise and creative";
+}
+
+function describeTopP(value: number): string {
+  if (value <= 0.5) return "Considers only the most likely next words";
+  if (value >= 0.95) return "Considers nearly all possible next words";
+  return "Moderate range of word choices considered";
+}
 
 const AGENT_TYPES = [
   "conversational",
@@ -109,6 +121,14 @@ export default function CreateAgent() {
   const selectedProvider = watch("model_provider");
   const modelsForProvider = modelsByProvider.get(selectedProvider) ?? [];
 
+  // Advanced model settings (Level 2 — CLAUDE.md Section 37.3). Sliders are
+  // controlled components, kept outside react-hook-form's register flow and
+  // merged into the payload at submit time.
+  const [expertOpen, setExpertOpen] = useState(false);
+  const [temperature, setTemperature] = useState(0.3);
+  const [topP, setTopP] = useState(0.9);
+  const [maxTokens, setMaxTokens] = useState(2048);
+
   const createMutation = useMutation({
     mutationFn: (values: CreateAgentFormValues) =>
       createAgent({
@@ -123,6 +143,9 @@ export default function CreateAgent() {
             | "azure_openai"
             | "self_hosted",
           system_prompt: values.system_prompt,
+          temperature,
+          top_p: topP,
+          max_tokens: maxTokens,
         },
       }),
     onSuccess: (result) => {
@@ -275,6 +298,66 @@ export default function CreateAgent() {
                 <span>
                   Auto retry and configured fallback are enabled via LiteLLM.
                 </span>
+              </div>
+
+              {/* Advanced settings — Level 2, hidden by default (Principle #1) */}
+              <div className="rounded-md border border-border bg-muted/20 p-4">
+                <button
+                  type="button"
+                  onClick={() => setExpertOpen((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-teal hover:text-teal-600"
+                >
+                  {expertOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  Advanced settings
+                </button>
+
+                {expertOpen ? (
+                  <div className="mt-3 space-y-4 border-t border-border pt-3">
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-sm font-medium text-navy">
+                        Temperature
+                      </label>
+                      <InfoTooltip text="Lower values make answers more focused and repeatable. Higher values make them more varied and exploratory." />
+                    </div>
+                    <Slider
+                      label=""
+                      value={temperature}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={setTemperature}
+                      describe={describeTemperature}
+                    />
+
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-sm font-medium text-navy">Top P</label>
+                      <InfoTooltip text="Narrows or widens how many possible next words the model considers at each step." />
+                    </div>
+                    <Slider
+                      label=""
+                      value={topP}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={setTopP}
+                      describe={describeTopP}
+                    />
+
+                    <div>
+                      <label className="text-sm font-medium text-navy">
+                        Max output tokens
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={8192}
+                        className={cn(inputClass, "mt-1")}
+                        value={maxTokens}
+                        onChange={(e) => setMaxTokens(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           )}

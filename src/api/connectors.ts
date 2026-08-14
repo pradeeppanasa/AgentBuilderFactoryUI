@@ -5,6 +5,8 @@ import type {
   ConnectorTestRequest,
   ConnectorTestResult,
   CreateConnectorRequest,
+  ImportOpenApiRequest,
+  ImportOpenApiResponse,
 } from "@/types/connector";
 
 export async function listConnectors(): Promise<ConnectorListResponse> {
@@ -24,6 +26,16 @@ export async function createConnector(
 ): Promise<ConnectorRecord> {
   const { data } = await httpClient.post<ConnectorRecord>(
     "/connectors",
+    request,
+  );
+  return data;
+}
+
+export async function importOpenApiConnectors(
+  request: ImportOpenApiRequest,
+): Promise<ImportOpenApiResponse> {
+  const { data } = await httpClient.post<ImportOpenApiResponse>(
+    "/connectors/import-openapi",
     request,
   );
   return data;

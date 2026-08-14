@@ -5,6 +5,8 @@ import {
   PlusCircle,
   Rocket,
   Plug,
+  Database,
+  ShieldCheck,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -16,6 +18,18 @@ const NAV_ITEMS = [
   { to: "/agents", label: "Agents", icon: Bot, writeOnly: false },
   { to: "/agents/new", label: "Create Agent", icon: PlusCircle, writeOnly: true },
   { to: "/connectors", label: "Connectors", icon: Plug, writeOnly: false },
+  {
+    to: "/platform/knowledge-bases",
+    label: "Knowledge Bases",
+    icon: Database,
+    writeOnly: false,
+  },
+  {
+    to: "/platform/guardrail-policies",
+    label: "Guardrail Policies",
+    icon: ShieldCheck,
+    writeOnly: false,
+  },
   { to: "/deployments", label: "Deployments", icon: Rocket, writeOnly: false },
   { to: "/settings", label: "Platform Settings", icon: Settings, writeOnly: false },
 ];

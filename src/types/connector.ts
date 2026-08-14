@@ -40,3 +40,16 @@ export interface ConnectorTestResult {
   status_code: number | null;
   summary: string;
 }
+
+// OpenAPI import (CLAUDE.md Section 37.6, Method B). Verified against the
+// runtime's actual implementation (app/api/v1/connectors.py +
+// tests/test_connectors_openapi_import_api.py) — there is no separate
+// auth_method field; credentials_required is auto-detected server-side from
+// the spec's securitySchemes.
+export interface ImportOpenApiRequest {
+  schema_document: Record<string, unknown> | string; // parsed JSON or a raw JSON/YAML string
+}
+
+export interface ImportOpenApiResponse {
+  created: ConnectorRecord[]; // one per generated path/operation
+}

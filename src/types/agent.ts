@@ -132,6 +132,69 @@ export interface AgentConfiguration {
   orchestration: OrchestrationConfig | null;
   mcp_servers: MCPServerConfig[];
   skills: SkillConfig[];
+
+  // Advanced Config (CLAUDE.md Section 37.11) — additive fields the backend
+  // added alongside the older ones above (app/modules/registry/models.py's
+  // own comment: "additive, not replacing"). kb_id/guardrail_policy_id are
+  // the ones the UI actively sets (EditAgent's catalog pickers); the other
+  // four round-trip transparently on save without dedicated UI yet.
+  kb_id: string | null;
+  guardrail_policy_id: string | null;
+  model_advanced: ModelAdvancedConfig | null;
+  memory_config: MemoryAdvancedConfig | null;
+  tool_instances: ToolInstanceConfig[];
+  output_schema: OutputSchemaConfig | null;
+}
+
+export interface ModelAdvancedConfig {
+  temperature: number;
+  top_p: number;
+  max_output_tokens: number;
+  presence_penalty: number;
+  frequency_penalty: number;
+  stop_sequences: string[];
+  request_timeout_ms: number;
+  retry_count: number;
+  streaming: boolean;
+  conversation_history_turns: number;
+  max_context_tokens: number;
+  fallback_model_string: string | null;
+  cost_budget_usd: number | null;
+  latency_budget_ms: number | null;
+}
+
+// Named MemoryAdvancedConfig on the frontend too, matching the backend's
+// own rename (app/modules/registry/models.py) — kept distinct from the
+// existing MemoryConfig above (memory_type/persistent_memory_ttl_days/
+// max_session_turns), a different, already-in-use shape.
+export interface MemoryAdvancedConfig {
+  session_enabled: boolean;
+  session_ttl_minutes: number;
+  long_term_enabled: boolean;
+  long_term_max_entries: number;
+  long_term_retrieval_top_k: number;
+  summary_enabled: boolean;
+  summary_trigger_turns: number;
+  summary_model: string | null;
+}
+
+export interface ToolInstanceConfig {
+  connector_id: string;
+  timeout_ms: number;
+  retry_count: number;
+  cache_enabled: boolean;
+  cache_ttl_seconds: number;
+  error_handling: "fail_request" | "skip_tool" | "use_fallback";
+  fallback_connector_id: string | null;
+  parallel_calls_allowed: boolean;
+}
+
+export interface OutputSchemaConfig {
+  format: "none" | "json" | "xml" | "markdown";
+  schema_definition: Record<string, unknown> | null;
+  strict_mode: boolean;
+  max_retries: number;
+  fallback_on_max_retries: "return_raw" | "return_error";
 }
 
 // A minimal configuration payload accepted on create/update — the backend
@@ -141,6 +204,7 @@ export interface AgentConfigurationInput {
   model_provider: ModelProvider;
   system_prompt: string;
   temperature?: number;
+  top_p?: number;
   max_tokens?: number;
   fallback_model_string?: string | null;
 }
@@ -237,8 +301,15 @@ export interface CreateAgentRequest {
   configuration: AgentConfigurationInput;
 }
 
+// The backend's PUT /agents/{id} accepts the FULL AgentConfiguration (not
+// the reduced AgentConfigurationInput CreateAgent sends) — confirmed
+// against app/api/v1/agents.py's UpdateAgentRequest Pydantic model, which
+// types `configuration` as AgentConfiguration. EditAgent.tsx always starts
+// from the current full config (via GET) and PUTs back the complete
+// object, so there's no need to know which backend fields have Python
+// defaults — every required field is already populated.
 export interface UpdateAgentRequest {
-  configuration: AgentConfigurationInput;
+  configuration: AgentConfiguration;
   change_description: string;
 }
 

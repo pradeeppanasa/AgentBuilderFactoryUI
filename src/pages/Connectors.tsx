@@ -3,12 +3,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
-import { createConnector, listConnectors } from "@/api/connectors";
-import { Button, LoadingSpinner } from "@/components/common";
+import { FileCode, Plus } from "lucide-react";
+import {
+  createConnector,
+  importOpenApiConnectors,
+  listConnectors,
+} from "@/api/connectors";
+import { Badge, Button, LoadingSpinner } from "@/components/common";
 import { ConnectorRow } from "@/components/connectors/ConnectorRow";
 import { useAuthStore } from "@/store/useAuthStore";
-import { cn } from "@/lib/utils";
+import { axiosErrorDetail, cn } from "@/lib/utils";
 
 const EXECUTOR_TYPES = ["http", "lambda", "sql", "mcp"] as const;
 
@@ -27,6 +31,9 @@ const inputClass =
 
 export default function Connectors() {
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [specText, setSpecText] = useState("");
+  const [specParseError, setSpecParseError] = useState<string | null>(null);
   const role = useAuthStore((state) => state.currentUser?.role);
   const canWrite = role === "developer" || role === "admin";
   const queryClient = useQueryClient();
@@ -34,6 +41,33 @@ export default function Connectors() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["connectors", "list"],
     queryFn: listConnectors,
+  });
+
+  // Accepts JSON or YAML, exactly like the backend's own parser (both are
+  // sent as the raw string — no client-side parsing/auth-method concept:
+  // credentials_required is auto-detected server-side from the spec's own
+  // securitySchemes).
+  //
+  // Note on the "review discovered endpoints before creating" step the
+  // spec describes: the backend has exactly one endpoint, and it parses
+  // AND creates a connector per operation in the same call — there is no
+  // parse-only/preview capability to call first, and duplicating its
+  // OpenAPI-parsing logic in the frontend just to build a fake preview
+  // would violate "don't create duplicate backend functionality in the
+  // UI". So this shows the discovered/created connectors immediately
+  // *after* the one real call succeeds (keeping the form open instead of
+  // auto-closing) rather than faking a pre-creation preview.
+  const importMutation = useMutation({
+    mutationFn: () => importOpenApiConnectors({ schema_document: specText }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["connectors", "list"] });
+      setSpecParseError(null);
+    },
+    onError: (error) => {
+      setSpecParseError(
+        axiosErrorDetail(error) ?? "Could not parse this OpenAPI document.",
+      );
+    },
   });
 
   const {
@@ -74,12 +108,111 @@ export default function Connectors() {
           </p>
         </div>
         {canWrite ? (
-          <Button variant="accent" onClick={() => setShowForm((v) => !v)}>
-            <Plus size={16} />
-            Add Connector
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowImport((v) => !v);
+                setShowForm(false);
+              }}
+            >
+              <FileCode size={16} />
+              Import from API spec
+            </Button>
+            <Button
+              variant="accent"
+              onClick={() => {
+                setShowForm((v) => !v);
+                setShowImport(false);
+              }}
+            >
+              <Plus size={16} />
+              Add Connector
+            </Button>
+          </div>
         ) : null}
       </div>
+
+      {showImport ? (
+        <div className="space-y-4 rounded-lg border border-border bg-card p-5">
+          <div>
+            <label className="text-sm font-medium text-navy">
+              OpenAPI 3.0 spec (JSON or YAML)
+            </label>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              One connector is generated per path + method operation. Auth requirements are
+              detected automatically from the spec.
+            </p>
+            <textarea
+              className={cn(inputClass, "mt-2 min-h-40 font-mono text-xs")}
+              placeholder='{"openapi": "3.0.0", "paths": {...}}'
+              value={specText}
+              onChange={(e) => setSpecText(e.target.value)}
+              disabled={Boolean(importMutation.data)}
+            />
+          </div>
+
+          {specParseError ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {specParseError}
+            </div>
+          ) : null}
+
+          {importMutation.data ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-sm font-medium text-emerald-800">
+                Discovered and created {importMutation.data.created.length} connector
+                {importMutation.data.created.length === 1 ? "" : "s"}:
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {importMutation.data.created.map((c) => (
+                  <Badge key={c.connector_id} variant="success">
+                    {c.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex gap-3">
+            {importMutation.data ? (
+              <Button
+                variant="accent"
+                onClick={() => {
+                  setSpecText("");
+                  setShowImport(false);
+                  importMutation.reset();
+                }}
+              >
+                Done
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="accent"
+                  disabled={!specText.trim() || importMutation.isPending}
+                  onClick={() => {
+                    setSpecParseError(null);
+                    importMutation.mutate();
+                  }}
+                >
+                  {importMutation.isPending ? "Parsing & creating…" : "Parse & Create Connectors"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowImport(false);
+                    setSpecText("");
+                    setSpecParseError(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {showForm ? (
         <form

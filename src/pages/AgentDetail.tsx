@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileCode2, Rocket } from "lucide-react";
@@ -8,10 +9,16 @@ import {
   getAgent,
   listVersions,
 } from "@/api/agents";
-import { Badge, Button, LoadingSpinner } from "@/components/common";
+import { Badge, Button, LoadingSpinner, Tabs } from "@/components/common";
 import { VersionTimeline } from "@/components/agent-detail/VersionTimeline";
 import { DeploymentHistory } from "@/components/agent-detail/DeploymentHistory";
+import { Playground } from "@/components/agent-detail/Playground";
 import { useAuthStore } from "@/store/useAuthStore";
+
+const DETAIL_TABS = [
+  { value: "overview", label: "Overview" },
+  { value: "playground", label: "Playground" },
+];
 
 export default function AgentDetail() {
   const { agentId } = useParams<{ agentId: string }>();
@@ -19,6 +26,7 @@ export default function AgentDetail() {
   const queryClient = useQueryClient();
   const role = useAuthStore((state) => state.currentUser?.role);
   const canWrite = role === "developer" || role === "admin";
+  const [activeTab, setActiveTab] = useState("overview");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["agents", "detail", agentId],
@@ -157,6 +165,14 @@ export default function AgentDetail() {
         </div>
       ) : null}
 
+      <Tabs tabs={DETAIL_TABS} value={activeTab} onChange={setActiveTab} />
+
+      {activeTab === "playground" ? (
+        <Playground agentId={agent.agent_id} />
+      ) : null}
+
+      {activeTab === "overview" ? (
+        <>
       <div className="rounded-lg border border-border bg-card p-5">
         <h2 className="text-sm font-semibold text-navy">Overview</h2>
         <dl className="mt-3 grid grid-cols-2 gap-4 text-sm">
@@ -237,6 +253,8 @@ export default function AgentDetail() {
         </h2>
         <DeploymentHistory agentId={agent.agent_id} />
       </div>
+        </>
+      ) : null}
     </div>
   );
 }

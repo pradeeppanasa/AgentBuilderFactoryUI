@@ -9,6 +9,8 @@ import EditAgent from "@/pages/EditAgent";
 import AgentDetail from "@/pages/AgentDetail";
 import DeploymentStatus from "@/pages/DeploymentStatus";
 import Connectors from "@/pages/Connectors";
+import KnowledgeBases from "@/pages/KnowledgeBases";
+import GuardrailPolicies from "@/pages/GuardrailPolicies";
 import PlatformSettings from "@/pages/PlatformSettings";
 
 export default function App() {
@@ -29,6 +31,8 @@ export default function App() {
               element={<DeploymentStatus />}
             />
             <Route path="connectors" element={<Connectors />} />
+            <Route path="platform/knowledge-bases" element={<KnowledgeBases />} />
+            <Route path="platform/guardrail-policies" element={<GuardrailPolicies />} />
             <Route path="settings" element={<PlatformSettings />} />
           </Route>
         </Route>
