@@ -11,6 +11,7 @@ import DeploymentStatus from "@/pages/DeploymentStatus";
 import Connectors from "@/pages/Connectors";
 import KnowledgeBases from "@/pages/KnowledgeBases";
 import GuardrailPolicies from "@/pages/GuardrailPolicies";
+import GuardrailPolicyEditor from "@/pages/GuardrailPolicyEditor";
 import PlatformSettings from "@/pages/PlatformSettings";
 
 export default function App() {
@@ -33,6 +34,15 @@ export default function App() {
             <Route path="connectors" element={<Connectors />} />
             <Route path="platform/knowledge-bases" element={<KnowledgeBases />} />
             <Route path="platform/guardrail-policies" element={<GuardrailPolicies />} />
+            <Route path="platform/guardrail-policies/new" element={<GuardrailPolicyEditor />} />
+            <Route
+              path="platform/guardrail-policies/:policyId"
+              element={<GuardrailPolicyEditor />}
+            />
+            <Route
+              path="platform/guardrail-policies/:policyId/edit"
+              element={<GuardrailPolicyEditor />}
+            />
             <Route path="settings" element={<PlatformSettings />} />
           </Route>
         </Route>
