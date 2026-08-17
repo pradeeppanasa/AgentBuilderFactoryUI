@@ -1,6 +1,12 @@
 import { Section } from "./SectionShell";
+import { ComingSoonBadge } from "./ComingSoonBadge";
 import { selectClass } from "./formClasses";
-import { PII_FIELD_LABELS, type PiiAction, type PiiConfig } from "@/types/guardrail-policy";
+import {
+  PII_DATE_TIME_STORED_ONLY_NOTE,
+  PII_FIELD_LABELS,
+  type PiiAction,
+  type PiiConfig,
+} from "@/types/guardrail-policy";
 
 interface PiiSectionProps {
   value: PiiConfig;
@@ -31,7 +37,14 @@ export function PiiSection({ value, onChange, readOnly }: PiiSectionProps) {
               const field = value[key];
               return (
                 <tr key={key} className="border-b border-border last:border-0">
-                  <td className="py-2.5 pr-3 text-navy">{PII_FIELD_LABELS[key]}</td>
+                  <td className="py-2.5 pr-3 text-navy">
+                    <div className="flex items-center gap-2">
+                      {PII_FIELD_LABELS[key]}
+                      {key === "date_time" ? (
+                        <ComingSoonBadge note={PII_DATE_TIME_STORED_ONLY_NOTE} />
+                      ) : null}
+                    </div>
+                  </td>
                   <td className="py-2.5 pr-3">
                     <select
                       className={selectClass}

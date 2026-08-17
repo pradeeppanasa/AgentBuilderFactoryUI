@@ -1,15 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { deleteGuardrailPolicy, listGuardrailPolicies } from "@/api/guardrail-policies";
-import { Button, LoadingSpinner } from "@/components/common";
+import { Button, LoadingSpinner, ResourceDeleteDialog } from "@/components/common";
 import { useAuthStore } from "@/store/useAuthStore";
-import { axiosErrorDetail, cn } from "@/lib/utils";
 import type { GuardrailPolicy } from "@/types/guardrail-policy";
-
-const inputClass =
-  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 // Non-admins see name + description only here (deliberately more restrictive
 // than the read-only detail page at /platform/guardrail-policies/{id}, which
@@ -18,18 +14,13 @@ const inputClass =
 function PolicyCard({
   policy,
   isAdmin,
-  onDelete,
-  deletePending,
-  deleteError,
+  onDeleted,
 }: {
   policy: GuardrailPolicy;
   isAdmin: boolean;
-  onDelete: () => void;
-  deletePending: boolean;
-  deleteError: string | null;
+  onDeleted: () => void;
 }) {
-  const [confirmingName, setConfirmingName] = useState("");
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   if (!isAdmin) {
     return (
@@ -56,12 +47,6 @@ function PolicyCard({
         </div>
       </div>
 
-      {deleteError ? (
-        <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          {deleteError}
-        </p>
-      ) : null}
-
       <div className="mt-4 flex items-center gap-2">
         <Link to={`/platform/guardrail-policies/${policy.policy_id}/edit`}>
           <Button size="sm" variant="outline">
@@ -69,32 +54,22 @@ function PolicyCard({
           </Button>
         </Link>
 
-        {!confirmOpen ? (
-          <Button size="sm" variant="destructive" onClick={() => setConfirmOpen(true)}>
-            <Trash2 size={14} />
-            Delete
-          </Button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <input
-              className={cn(inputClass, "h-9 w-40")}
-              placeholder={`Type "${policy.name}"`}
-              value={confirmingName}
-              onChange={(e) => setConfirmingName(e.target.value)}
-            />
-            <Button
-              size="sm"
-              variant="destructive"
-              disabled={confirmingName !== policy.name || deletePending}
-              onClick={onDelete}
-            >
-              Confirm
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setConfirmOpen(false)}>
-              Cancel
-            </Button>
-          </div>
-        )}
+        <Button size="sm" variant="destructive" onClick={() => setDialogOpen(true)}>
+          <Trash2 size={14} />
+          Delete
+        </Button>
+
+        <ResourceDeleteDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          resourceName={policy.name}
+          resourceTypeLabel="guardrail policy"
+          requireTypeToConfirm
+          onPermanentDelete={async () => {
+            await deleteGuardrailPolicy(policy.policy_id);
+            onDeleted();
+          }}
+        />
       </div>
     </div>
   );
@@ -108,23 +83,6 @@ export default function GuardrailPolicies() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["guardrail-policies", "list"],
     queryFn: listGuardrailPolicies,
-  });
-
-  const [deleteError, setDeleteError] = useState<{ policyId: string; message: string } | null>(
-    null,
-  );
-  const deleteMutation = useMutation({
-    mutationFn: (policyId: string) => deleteGuardrailPolicy(policyId),
-    onSuccess: (_data, policyId) => {
-      setDeleteError((prev) => (prev?.policyId === policyId ? null : prev));
-      queryClient.invalidateQueries({ queryKey: ["guardrail-policies", "list"] });
-    },
-    onError: (error, policyId) => {
-      setDeleteError({
-        policyId,
-        message: axiosErrorDetail(error) ?? "Failed to delete guardrail policy.",
-      });
-    },
   });
 
   return (
@@ -177,12 +135,8 @@ export default function GuardrailPolicies() {
               key={policy.policy_id}
               policy={policy}
               isAdmin={isAdmin}
-              onDelete={() => deleteMutation.mutate(policy.policy_id)}
-              deletePending={
-                deleteMutation.isPending && deleteMutation.variables === policy.policy_id
-              }
-              deleteError={
-                deleteError?.policyId === policy.policy_id ? deleteError.message : null
+              onDeleted={() =>
+                queryClient.invalidateQueries({ queryKey: ["guardrail-policies", "list"] })
               }
             />
           ))}

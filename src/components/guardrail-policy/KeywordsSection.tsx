@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { Button } from "@/components/common";
+import { Button, InfoTooltip } from "@/components/common";
 import { Section } from "./SectionShell";
 import { inputClass, selectClass } from "./formClasses";
-import type { KeywordAction, KeywordPatternType, KeywordPolicy } from "@/types/guardrail-policy";
+import {
+  KEYWORD_REDACT_NOTE,
+  KEYWORD_REGEX_NOTE,
+  type KeywordAction,
+  type KeywordPatternType,
+  type KeywordPolicy,
+} from "@/types/guardrail-policy";
 
 interface KeywordsSectionProps {
   value: KeywordPolicy;
@@ -44,6 +50,8 @@ export function KeywordsSection({ value, onChange, readOnly }: KeywordsSectionPr
             <span className="opacity-70">[{rule.pattern_type === "LITERAL" ? "Literal" : "Regex"}]</span>
             {rule.pattern}
             <span className="opacity-70">— {rule.action === "BLOCK" ? "blocked" : "redacted"}</span>
+            {rule.pattern_type === "REGEX" ? <InfoTooltip text={KEYWORD_REGEX_NOTE} /> : null}
+            {rule.action === "REDACT" ? <InfoTooltip text={KEYWORD_REDACT_NOTE} /> : null}
             {!readOnly ? (
               <button type="button" onClick={() => removeRule(index)} className="hover:opacity-70">
                 <X size={12} />

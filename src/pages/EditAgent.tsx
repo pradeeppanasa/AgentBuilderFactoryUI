@@ -237,6 +237,27 @@ export default function EditAgent() {
         </p>
       </div>
 
+      {/* Section 38.11: "editing a published agent creates a new draft
+          version; the live version keeps serving until you publish/deploy
+          it." This is already exactly how the existing versioning model
+          works (PUT creates v(N+1); live_version only advances on a
+          successful deploy) — this banner just makes that visible rather
+          than introducing a separate draft concept. There is no
+          "Discard draft" action here: once Save creates v(N+1), Rollback
+          (Version History tab) is the real, existing mechanism to undo it. */}
+      {data.agent.live_version !== null && data.agent.live_version !== data.agent.current_version ? (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+          Live version is v{data.agent.live_version}. v{data.agent.current_version} hasn't been
+          deployed yet — saving here will create v{data.agent.current_version + 1}, and live
+          traffic keeps running on v{data.agent.live_version} until you deploy.
+        </p>
+      ) : (
+        <p className="rounded-md border border-border bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
+          Saving creates v{data.agent.current_version + 1} — v{data.agent.current_version}{" "}
+          keeps serving live traffic until the new version is deployed.
+        </p>
+      )}
+
       {/* ── Model ─────────────────────────────────────────────────── */}
       <section className="rounded-lg border border-border bg-card p-5">
         <h2 className="text-sm font-semibold text-navy">Model</h2>

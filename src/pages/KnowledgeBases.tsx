@@ -15,9 +15,15 @@ import {
   listKnowledgeBases,
   reindexKnowledgeBase,
 } from "@/api/knowledge-bases";
-import { Badge, Button, LoadingSpinner, OptionCard } from "@/components/common";
+import {
+  Badge,
+  Button,
+  LoadingSpinner,
+  OptionCard,
+  ResourceDeleteDialog,
+} from "@/components/common";
 import { useAuthStore } from "@/store/useAuthStore";
-import { axiosErrorDetail, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type {
   CreateKnowledgeBaseRequest,
   KBSourceType,
@@ -45,21 +51,16 @@ function KBCard({
   kb,
   canWrite,
   onReindex,
-  onDelete,
+  onDeleted,
   reindexPending,
-  deletePending,
-  deleteError,
 }: {
   kb: KnowledgeBaseRecord;
   canWrite: boolean;
   onReindex: () => void;
-  onDelete: () => void;
+  onDeleted: () => void;
   reindexPending: boolean;
-  deletePending: boolean;
-  deleteError: string | null;
 }) {
-  const [confirmingName, setConfirmingName] = useState("");
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <div className="rounded-lg border border-border bg-card p-5">
@@ -96,12 +97,6 @@ function KBCard({
         </div>
       </dl>
 
-      {deleteError ? (
-        <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          {deleteError}
-        </p>
-      ) : null}
-
       {canWrite ? (
         <div className="mt-4 flex items-center gap-2">
           <Button
@@ -114,36 +109,22 @@ function KBCard({
             {reindexPending ? "Reindexing…" : "Reindex"}
           </Button>
 
-          {!confirmOpen ? (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => setConfirmOpen(true)}
-            >
-              <Trash2 size={14} />
-              Delete
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <input
-                className={cn(inputClass, "h-9 w-40")}
-                placeholder={`Type "${kb.name}"`}
-                value={confirmingName}
-                onChange={(e) => setConfirmingName(e.target.value)}
-              />
-              <Button
-                size="sm"
-                variant="destructive"
-                disabled={confirmingName !== kb.name || deletePending}
-                onClick={onDelete}
-              >
-                Confirm
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setConfirmOpen(false)}>
-                Cancel
-              </Button>
-            </div>
-          )}
+          <Button size="sm" variant="destructive" onClick={() => setDialogOpen(true)}>
+            <Trash2 size={14} />
+            Delete
+          </Button>
+
+          <ResourceDeleteDialog
+            open={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            resourceName={kb.name}
+            resourceTypeLabel="knowledge base"
+            requireTypeToConfirm
+            onPermanentDelete={async () => {
+              await deleteKnowledgeBase(kb.kb_id);
+              onDeleted();
+            }}
+          />
         </div>
       ) : null}
     </div>
@@ -180,23 +161,6 @@ export default function KnowledgeBases() {
   const reindexMutation = useMutation({
     mutationFn: (kbId: string) => reindexKnowledgeBase(kbId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["knowledge-bases", "list"] }),
-  });
-
-  const [deleteError, setDeleteError] = useState<{ kbId: string; message: string } | null>(null);
-  const deleteMutation = useMutation({
-    mutationFn: (kbId: string) => deleteKnowledgeBase(kbId),
-    onSuccess: (_data, kbId) => {
-      setDeleteError((prev) => (prev?.kbId === kbId ? null : prev));
-      queryClient.invalidateQueries({ queryKey: ["knowledge-bases", "list"] });
-    },
-    onError: (error, kbId) => {
-      // 409 = still referenced by agent(s) — the backend's error detail
-      // names them (Section 37.10's delete-guard).
-      setDeleteError({
-        kbId,
-        message: axiosErrorDetail(error) ?? "Failed to delete knowledge base.",
-      });
-    },
   });
 
   function sourceConfigFor(type: KBSourceType, value: string): Record<string, unknown> {
@@ -342,14 +306,12 @@ export default function KnowledgeBases() {
               kb={kb}
               canWrite={canWrite}
               onReindex={() => reindexMutation.mutate(kb.kb_id)}
-              onDelete={() => deleteMutation.mutate(kb.kb_id)}
+              onDeleted={() =>
+                queryClient.invalidateQueries({ queryKey: ["knowledge-bases", "list"] })
+              }
               reindexPending={
                 reindexMutation.isPending && reindexMutation.variables === kb.kb_id
               }
-              deletePending={
-                deleteMutation.isPending && deleteMutation.variables === kb.kb_id
-              }
-              deleteError={deleteError?.kbId === kb.kb_id ? deleteError.message : null}
             />
           ))}
         </div>

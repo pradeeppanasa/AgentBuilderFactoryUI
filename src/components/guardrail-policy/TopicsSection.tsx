@@ -2,8 +2,9 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/common";
 import { Section } from "./SectionShell";
+import { ComingSoonBadge } from "./ComingSoonBadge";
 import { inputClass } from "./formClasses";
-import type { TopicConfig } from "@/types/guardrail-policy";
+import { TOPICS_ALLOWED_STORED_ONLY_NOTE, type TopicConfig } from "@/types/guardrail-policy";
 
 function TagInput({
   tags,
@@ -100,7 +101,10 @@ export function TopicsSection({ value, onChange, readOnly }: TopicsSectionProps)
       </div>
 
       <div>
-        <p className="text-sm font-medium text-navy">Allowed topics</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-navy">Allowed topics</p>
+          <ComingSoonBadge note={TOPICS_ALLOWED_STORED_ONLY_NOTE} />
+        </div>
         <p className="mt-0.5 text-xs text-muted-foreground">
           Leave empty to allow all topics. Add topics to restrict the agent to only these
           subjects.

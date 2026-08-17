@@ -1,8 +1,10 @@
 import { Section } from "./SectionShell";
+import { ComingSoonBadge } from "./ComingSoonBadge";
 import { inputClass, selectClass } from "./formClasses";
 import { cn } from "@/lib/utils";
 import {
   COMPLIANCE_FRAMEWORK_LABELS,
+  COMPLIANCE_STORED_ONLY_NOTE,
   type ComplianceConfig,
   type ComplianceFramework,
 } from "@/types/guardrail-policy";
@@ -28,7 +30,11 @@ export function ComplianceSection({ value, onChange, readOnly }: ComplianceSecti
   }
 
   return (
-    <Section id="compliance" title="Compliance frameworks">
+    <Section
+      id="compliance"
+      title="Compliance frameworks"
+      badge={<ComingSoonBadge note={COMPLIANCE_STORED_ONLY_NOTE} />}
+    >
       <div className="grid grid-cols-3 gap-2">
         {FRAMEWORKS.map((framework) => {
           const active = value.frameworks.includes(framework);

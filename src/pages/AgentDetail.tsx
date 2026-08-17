@@ -17,6 +17,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 
 const DETAIL_TABS = [
   { value: "overview", label: "Overview" },
+  { value: "versions", label: "Version history" },
   { value: "playground", label: "Playground" },
 ];
 
@@ -233,27 +234,34 @@ export default function AgentDetail() {
 
       <div>
         <h2 className="mb-3 text-sm font-semibold text-navy">
-          Version History
-        </h2>
-        {versionsData ? (
-          <VersionTimeline
-            agentId={agent.agent_id}
-            currentVersion={agent.current_version}
-            versions={versionsData.items}
-            canWrite={canWrite}
-          />
-        ) : (
-          <LoadingSpinner label="Loading versions…" />
-        )}
-      </div>
-
-      <div>
-        <h2 className="mb-3 text-sm font-semibold text-navy">
           Deployment History
         </h2>
         <DeploymentHistory agentId={agent.agent_id} />
       </div>
         </>
+      ) : null}
+
+      {activeTab === "versions" ? (
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-navy">
+            Version History
+          </h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Every save creates a new version. Rolling back to a deprecated version creates the
+            next version from its config and deploys it — the version you roll back from stays
+            in history, nothing is ever deleted.
+          </p>
+          {versionsData ? (
+            <VersionTimeline
+              agentId={agent.agent_id}
+              currentVersion={agent.current_version}
+              versions={versionsData.items}
+              canWrite={canWrite}
+            />
+          ) : (
+            <LoadingSpinner label="Loading versions…" />
+          )}
+        </div>
       ) : null}
     </div>
   );

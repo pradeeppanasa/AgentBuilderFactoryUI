@@ -1,9 +1,12 @@
+import type { ReactNode } from "react";
 import { Badge, InfoTooltip, Slider, Toggle } from "@/components/common";
 import { Section } from "./SectionShell";
+import { ComingSoonBadge } from "./ComingSoonBadge";
 import { selectClass } from "./formClasses";
 import {
   BERT_BLOCK_THRESHOLD_MIN,
   BERT_ESCALATE_THRESHOLD_MAX,
+  BERT_STORED_ONLY_NOTES,
   type BertConfig,
 } from "@/types/guardrail-policy";
 
@@ -18,18 +21,23 @@ function SubCheckRow({
   enabled,
   onToggle,
   readOnly,
+  storedOnlyNote,
   children,
 }: {
   label: string;
   enabled: boolean;
   onToggle: (v: boolean) => void;
   readOnly: boolean;
-  children?: React.ReactNode;
+  storedOnlyNote?: string;
+  children?: ReactNode;
 }) {
   return (
     <div className="rounded-md border border-border px-4 py-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-navy">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-navy">{label}</span>
+          {storedOnlyNote ? <ComingSoonBadge note={storedOnlyNote} /> : null}
+        </div>
         <Toggle checked={enabled} onChange={onToggle} disabled={readOnly} />
       </div>
       {enabled && children ? <div className="mt-3 space-y-3">{children}</div> : null}
@@ -110,6 +118,7 @@ export function BertSection({ value, onChange, readOnly }: BertSectionProps) {
                 enabled={value.check_nsfw}
                 onToggle={(v) => patch({ check_nsfw: v })}
                 readOnly={readOnly}
+                storedOnlyNote={BERT_STORED_ONLY_NOTES.check_nsfw}
               >
                 <Slider
                   label="Threshold"
@@ -142,6 +151,7 @@ export function BertSection({ value, onChange, readOnly }: BertSectionProps) {
                 enabled={value.check_prompt_injection}
                 onToggle={(v) => patch({ check_prompt_injection: v })}
                 readOnly={readOnly}
+                storedOnlyNote={BERT_STORED_ONLY_NOTES.check_prompt_injection}
               >
                 <Slider
                   label="Threshold"
@@ -160,6 +170,7 @@ export function BertSection({ value, onChange, readOnly }: BertSectionProps) {
                 enabled={value.check_gibberish}
                 onToggle={(v) => patch({ check_gibberish: v })}
                 readOnly={readOnly}
+                storedOnlyNote={BERT_STORED_ONLY_NOTES.check_gibberish}
               >
                 <Slider
                   label="Threshold"
@@ -191,11 +202,6 @@ export function BertSection({ value, onChange, readOnly }: BertSectionProps) {
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               Output does not pass through BERT. It goes directly to Layer 2 (Bedrock).
-            </p>
-            <p className="mt-1 text-xs text-amber-700">
-              Disclosed scope: only the toxicity check has a real local model wired up today
-              (ONNX Runtime). NSFW, prompt injection, and gibberish are accepted and stored here
-              but not yet enforced by the guardrail engine.
             </p>
           </div>
         </>

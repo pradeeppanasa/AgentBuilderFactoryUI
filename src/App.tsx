@@ -1,7 +1,10 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
+import { AdminRoute } from "@/components/layout/AdminRoute";
 import Login from "@/pages/Login";
+import Forbidden from "@/pages/Forbidden";
+import ObservabilitySettings from "@/pages/ObservabilitySettings";
 import Dashboard from "@/pages/Dashboard";
 import AgentList from "@/pages/AgentList";
 import CreateAgent from "@/pages/CreateAgent";
@@ -13,6 +16,12 @@ import KnowledgeBases from "@/pages/KnowledgeBases";
 import GuardrailPolicies from "@/pages/GuardrailPolicies";
 import GuardrailPolicyEditor from "@/pages/GuardrailPolicyEditor";
 import PlatformSettings from "@/pages/PlatformSettings";
+import Projects from "@/pages/Projects";
+import ProjectDetail from "@/pages/ProjectDetail";
+import Skills from "@/pages/Skills";
+import ModelCatalog from "@/pages/ModelCatalog";
+import HitlReviews from "@/pages/HitlReviews";
+import AgentWizard from "@/pages/AgentWizard";
 
 export default function App() {
   return (
@@ -22,6 +31,9 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
             <Route index element={<Dashboard />} />
+            <Route path="projects" element={<Projects />} />
+            <Route path="projects/:projectId" element={<ProjectDetail />} />
+            <Route path="projects/:projectId/agents/new" element={<AgentWizard />} />
             <Route path="agents" element={<AgentList />} />
             <Route path="agents/new" element={<CreateAgent />} />
             <Route path="agents/:agentId" element={<AgentDetail />} />
@@ -43,7 +55,14 @@ export default function App() {
               path="platform/guardrail-policies/:policyId/edit"
               element={<GuardrailPolicyEditor />}
             />
+            <Route path="platform/skills" element={<Skills />} />
+            <Route path="hitl-reviews" element={<HitlReviews />} />
             <Route path="settings" element={<PlatformSettings />} />
+            <Route path="403" element={<Forbidden />} />
+            <Route element={<AdminRoute />}>
+              <Route path="admin/observability" element={<ObservabilitySettings />} />
+              <Route path="platform/models" element={<ModelCatalog />} />
+            </Route>
           </Route>
         </Route>
       </Routes>

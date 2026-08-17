@@ -1,5 +1,6 @@
 export * from "./PipelineDiagram";
 export * from "./SectionShell";
+export * from "./ComingSoonBadge";
 export * from "./BasicInfoSection";
 export * from "./BertSection";
 export * from "./BedrockSection";

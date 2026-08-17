@@ -7,31 +7,55 @@ import {
   Plug,
   Database,
   ShieldCheck,
+  Sparkles,
+  FolderKanban,
   Settings,
+  Activity,
+  Cpu,
+  ClipboardCheck,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, writeOnly: false },
-  { to: "/agents", label: "Agents", icon: Bot, writeOnly: false },
-  { to: "/agents/new", label: "Create Agent", icon: PlusCircle, writeOnly: true },
-  { to: "/connectors", label: "Connectors", icon: Plug, writeOnly: false },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, writeOnly: false, adminOnly: false },
+  { to: "/projects", label: "Projects", icon: FolderKanban, writeOnly: false, adminOnly: false },
+  { to: "/agents", label: "Agents", icon: Bot, writeOnly: false, adminOnly: false },
+  { to: "/agents/new", label: "Create Agent", icon: PlusCircle, writeOnly: true, adminOnly: false },
+  { to: "/connectors", label: "Connectors", icon: Plug, writeOnly: false, adminOnly: false },
   {
     to: "/platform/knowledge-bases",
     label: "Knowledge Bases",
     icon: Database,
     writeOnly: false,
+    adminOnly: false,
   },
   {
     to: "/platform/guardrail-policies",
     label: "Guardrail Policies",
     icon: ShieldCheck,
     writeOnly: false,
+    adminOnly: false,
   },
-  { to: "/deployments", label: "Deployments", icon: Rocket, writeOnly: false },
-  { to: "/settings", label: "Platform Settings", icon: Settings, writeOnly: false },
+  { to: "/platform/skills", label: "Skills", icon: Sparkles, writeOnly: false, adminOnly: false },
+  { to: "/platform/models", label: "Model Catalog", icon: Cpu, writeOnly: false, adminOnly: true },
+  {
+    to: "/hitl-reviews",
+    label: "HITL Reviews",
+    icon: ClipboardCheck,
+    writeOnly: false,
+    adminOnly: false,
+  },
+  { to: "/deployments", label: "Deployments", icon: Rocket, writeOnly: false, adminOnly: false },
+  { to: "/settings", label: "Platform Settings", icon: Settings, writeOnly: false, adminOnly: false },
+  {
+    to: "/admin/observability",
+    label: "Observability",
+    icon: Activity,
+    writeOnly: false,
+    adminOnly: true,
+  },
 ];
 
 export function Sidebar() {
@@ -39,7 +63,10 @@ export function Sidebar() {
   const currentUser = useAuthStore((state) => state.currentUser);
   const logout = useAuthStore((state) => state.logout);
   const canWrite = currentUser?.role === "developer" || currentUser?.role === "admin";
-  const visibleNavItems = NAV_ITEMS.filter((item) => !item.writeOnly || canWrite);
+  const isAdmin = currentUser?.role === "admin";
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => (!item.writeOnly || canWrite) && (!item.adminOnly || isAdmin),
+  );
 
   return (
     <aside className="flex h-screen w-64 flex-col bg-navy text-white">

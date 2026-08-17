@@ -1,7 +1,9 @@
 import { Badge, Toggle } from "@/components/common";
 import { Section } from "./SectionShell";
+import { ComingSoonBadge } from "./ComingSoonBadge";
 import { inputClass, selectClass } from "./formClasses";
 import {
+  BEDROCK_CREDENTIAL_STORED_ONLY_NOTE,
   BEDROCK_FILTER_LABELS,
   type BedrockContentFilters,
   type BedrockFilterConfig,
@@ -105,7 +107,10 @@ export function BedrockSection({
         <>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-navy">Credential</label>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-navy">Credential</label>
+                <ComingSoonBadge note={BEDROCK_CREDENTIAL_STORED_ONLY_NOTE} />
+              </div>
               <input
                 className={`${inputClass} mt-1`}
                 placeholder="Reserved for future use"
@@ -113,10 +118,6 @@ export function BedrockSection({
                 disabled={readOnly}
                 onChange={(e) => onCredentialIdChange(e.target.value || null)}
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Not used by today's provisioner — it always calls Bedrock with the Runtime's own
-                IAM role, not a per-policy credential lookup.
-              </p>
             </div>
             <div>
               <label className="text-xs font-medium text-navy">Guardrail ID</label>

@@ -1,22 +1,19 @@
-// Guardrail Policy Library (CLAUDE.md Section 37.7 / 37.10 / 37.14 —
+// Guardrail Policy Library (CLAUDE.md Section 37.7 / 37.10 / 37.14 / 37.15 —
 // 2026-08-16 rich-schema expansion).
 //
 // Mirrors app/modules/guardrails/models.py::GuardrailPolicy field-for-field
 // (that Pydantic model is the source of truth for the GET/response shape;
 // `extra="forbid"` there means every field below must exist server-side).
+// Create/Update request shapes verified directly against
+// app/api/v1/guardrail_policies.py's CreateGuardrailPolicyRequest /
+// UpdateGuardrailPolicyRequest — confirmed live, all 49 guardrail-related
+// backend tests passing.
 //
-// NOTE: at the time this file was written, app/api/v1/guardrail_policies.py,
-// app/modules/guardrails/store.py and the guardrail_policies_api tests were
-// still on the OLDER flat schema (input_enabled/bert_model/bert_block_threshold/
-// output_pii_redaction/...) — the backend session had updated models.py plus
-// added a `create_bedrock_client` control-plane factory (referencing a not-yet-
-// created `app.modules.guardrails.provisioner`) but had not yet migrated the
-// route/store/tests to match. Create/Update request shapes below follow this
-// codebase's established library-resource pattern (see CreateKnowledgeBaseRequest
-// in api/v1/knowledge_bases.py: request mirrors the record 1:1, minus
-// server-set id/tenant/timestamps/created_by fields) rather than the stale
-// flat request currently in guardrail_policies.py. Re-verify against the real
-// endpoint once that migration lands.
+// Section 37.15 ("Implementation Status") documents which fields are
+// enforced at runtime vs merely stored for future enforcement — see
+// STORED_ONLY_NOTES below for the exact per-field tooltip text used in the
+// UI. Do not hide or disable stored-only fields; they persist correctly
+// today and will be enforced once the corresponding engine work lands.
 
 export type BedrockStrength = "NONE" | "LOW" | "MEDIUM" | "HIGH";
 
@@ -277,3 +274,34 @@ export const COMPLIANCE_FRAMEWORK_LABELS: Record<ComplianceFramework, string> = 
   CCPA: "CCPA",
   FEDRAMP: "FedRAMP",
 };
+
+// Section 37.15's field-status table, verbatim tooltip text. Only fields
+// listed here get the "Coming soon" treatment in the UI — everything else
+// (bert.check_toxicity, all 6 Bedrock content filters, bedrock_guardrail_id,
+// the other 7 PII rows, topics.banned_topics, LITERAL+BLOCK keyword rules)
+// is live and enforced today, so it must NOT carry this badge.
+export const STORED_ONLY_NOTE = "Saved but not yet enforced at runtime.";
+
+export const BERT_STORED_ONLY_NOTES: Record<"check_nsfw" | "check_prompt_injection" | "check_gibberish", string> = {
+  check_nsfw: `${STORED_ONLY_NOTE} No ONNX model wired yet.`,
+  check_prompt_injection: `${STORED_ONLY_NOTE} No model wired yet.`,
+  check_gibberish: `${STORED_ONLY_NOTE} No model wired yet.`,
+};
+
+export const BEDROCK_CREDENTIAL_STORED_ONLY_NOTE =
+  `${STORED_ONLY_NOTE} Not yet wired to a credentials store — provisioning uses the Runtime's own AWS session.`;
+
+export const PII_DATE_TIME_STORED_ONLY_NOTE =
+  `${STORED_ONLY_NOTE} Bedrock has no DATE_TIME PII entity, so there's no equivalent to provision.`;
+
+export const TOPICS_ALLOWED_STORED_ONLY_NOTE =
+  `${STORED_ONLY_NOTE} Bedrock's topic policy is deny-only — there's no whitelist concept to provision.`;
+
+export const KEYWORD_REGEX_NOTE =
+  "Regex patterns are stored but will only be enforced by the local engine (Layer 1). Bedrock Layer 2 enforces literal keywords only.";
+
+export const KEYWORD_REDACT_NOTE =
+  `${STORED_ONLY_NOTE} Bedrock's word policy only supports blocking keywords, not redacting them.`;
+
+export const COMPLIANCE_STORED_ONLY_NOTE =
+  `${STORED_ONLY_NOTE} No engine enforcement yet — frameworks, custom rules, and the on-violation action are all persisted for the future LLM-judge integration.`;
