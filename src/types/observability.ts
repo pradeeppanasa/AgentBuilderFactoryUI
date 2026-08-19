@@ -1,10 +1,5 @@
-// Observability Settings (instructions_observability_UI.md, R45).
-//
-// NOT YET IMPLEMENTED SERVER-SIDE — no /admin/settings/observability,
-// /admin/settings/otel-endpoint, or /admin/settings/integrations/* routes
-// found in panasa-agent-builder-runtime as of this writing. Shapes below
-// follow the spec's API contract table exactly. Every call through
-// api/observability.ts will 404 until the backend adds these routes.
+// Observability Settings (instructions_observability_UI.md, R45, CLAUDE.md
+// Section 41.5).
 //
 // Role note: the spec's "Developer and Viewer roles receive 403" doesn't
 // match this codebase's real role enum (types/auth.ts: admin | developer |
@@ -63,11 +58,48 @@ export interface SaveDatadogRequest {
   site?: DatadogSite;
 }
 
+// Grafana/Loki: endpoint-only, same reasoning as the generic OTel endpoint
+// above — accepts spans over plain OTLP with no separate API key needed.
+export interface GrafanaConfig {
+  enabled: boolean;
+  endpoint: string | null;
+}
+
+export interface SaveGrafanaRequest {
+  enabled: boolean;
+  endpoint?: string;
+}
+
+// New Relic: needs a license/API key, same masked-on-read shape as Datadog.
+export interface NewRelicConfig {
+  enabled: boolean;
+  api_key: string | null;
+}
+
+export interface SaveNewRelicRequest {
+  enabled: boolean;
+  api_key?: string;
+}
+
+// Dynatrace: endpoint-only, same shape as Grafana/Loki.
+export interface DynatraceConfig {
+  enabled: boolean;
+  endpoint: string | null;
+}
+
+export interface SaveDynatraceRequest {
+  enabled: boolean;
+  endpoint?: string;
+}
+
 export interface ObservabilityConfigResponse {
   default_stack: DefaultStackStatus;
   otel: OtelEndpointConfig;
   langfuse: LangfuseConfig;
   datadog: DatadogConfig;
+  grafana: GrafanaConfig;
+  new_relic: NewRelicConfig;
+  dynatrace: DynatraceConfig;
 }
 
 export const DATADOG_SITES: DatadogSite[] = [

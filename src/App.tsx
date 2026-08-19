@@ -7,7 +7,6 @@ import Forbidden from "@/pages/Forbidden";
 import ObservabilitySettings from "@/pages/ObservabilitySettings";
 import Dashboard from "@/pages/Dashboard";
 import AgentList from "@/pages/AgentList";
-import CreateAgent from "@/pages/CreateAgent";
 import EditAgent from "@/pages/EditAgent";
 import AgentDetail from "@/pages/AgentDetail";
 import DeploymentStatus from "@/pages/DeploymentStatus";
@@ -35,7 +34,12 @@ export default function App() {
             <Route path="projects/:projectId" element={<ProjectDetail />} />
             <Route path="projects/:projectId/agents/new" element={<AgentWizard />} />
             <Route path="agents" element={<AgentList />} />
-            <Route path="agents/new" element={<CreateAgent />} />
+            {/* Wizard Redesign — one wizard, both entry points. AgentWizard
+                already tolerates a missing :projectId (falls back to ""),
+                and its save flow already POSTs to the flat /agents route,
+                not a project-scoped one, so no project context is needed
+                here. */}
+            <Route path="agents/new" element={<AgentWizard />} />
             <Route path="agents/:agentId" element={<AgentDetail />} />
             <Route path="agents/:agentId/edit" element={<EditAgent />} />
             <Route path="deployments" element={<DeploymentStatus />} />

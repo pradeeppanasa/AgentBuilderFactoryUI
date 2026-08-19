@@ -366,6 +366,19 @@ export default function GuardrailPolicyEditor() {
             onChange={(blocked_messages) => setDraft((d) => ({ ...d, blocked_messages }))}
             readOnly={readOnly}
           />
+
+          {!readOnly ? (
+            <div className="flex items-center justify-end border-t border-border pt-5">
+              <Button
+                type="submit"
+                form="guardrail-policy-form"
+                variant="accent"
+                disabled={saving || !!thresholdError}
+              >
+                {saving ? "Saving…" : "Save Policy"}
+              </Button>
+            </div>
+          ) : null}
         </div>
       </form>
     </div>

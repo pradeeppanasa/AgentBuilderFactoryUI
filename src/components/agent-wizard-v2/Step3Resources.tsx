@@ -1,28 +1,30 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { CheckSquare, Plus, Square } from "lucide-react";
 import { listKnowledgeBases } from "@/api/knowledge-bases";
 import { listGuardrailPolicies } from "@/api/guardrail-policies";
 import { listSkills } from "@/api/skills";
 import { listConnectors } from "@/api/connectors";
+import { listAgents } from "@/api/agents";
 import { Badge, Button } from "@/components/common";
 import { cn } from "@/lib/utils";
 import { ResourceSlideOver, type SlideOverKind } from "./ResourceSlideOver";
 import type { WizardDraft, WizardResourceSelection } from "@/types/agent-wizard";
 
+// U-02: a checkbox icon (checked/unchecked) makes select-vs-open unambiguous
+// — plain highlighted-border chips left it unclear whether clicking selects
+// or navigates.
 function ResourceGrid({
   items,
   selectedIds,
   onToggle,
-  multi = true,
 }: {
   items: WizardResourceSelection[];
   selectedIds: string[];
   onToggle: (item: WizardResourceSelection) => void;
-  multi?: boolean;
 }) {
   if (items.length === 0) {
-    return <p className="text-xs text-muted-foreground">Nothing in the catalog yet.</p>;
+    return <p className="text-xs text-muted-foreground">Nothing in the catalog yet — create your first one.</p>;
   }
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -32,20 +34,50 @@ function ResourceGrid({
           <button
             key={item.resource_id}
             type="button"
+            aria-pressed={selected}
             onClick={() => onToggle(item)}
             className={cn(
-              "flex items-center justify-between gap-2 rounded-md border p-2.5 text-left text-sm transition-colors",
+              "flex items-center gap-2 rounded-md border p-2.5 text-left text-sm transition-colors",
               selected
                 ? "border-teal bg-teal/5 ring-1 ring-teal"
                 : "border-border hover:border-teal/40",
             )}
           >
-            <span className="truncate">{item.name}</span>
+            {selected ? (
+              <CheckSquare size={15} className="shrink-0 text-teal" />
+            ) : (
+              <Square size={15} className="shrink-0 text-muted-foreground" />
+            )}
+            <span className="flex-1 truncate">{item.name}</span>
             {item.isNew ? <Badge variant="success">New</Badge> : null}
           </button>
         );
       })}
-      {!multi ? null : null}
+    </div>
+  );
+}
+
+function SectionHeader({
+  title,
+  selectedCount,
+  onCreate,
+}: {
+  title: string;
+  selectedCount: number;
+  onCreate: () => void;
+}) {
+  return (
+    <div className="mb-2 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <p className="text-sm font-medium text-navy">{title}</p>
+        <span className="text-xs text-muted-foreground">
+          {selectedCount} selected
+        </span>
+      </div>
+      <Button size="sm" variant="outline" onClick={onCreate}>
+        <Plus size={13} />
+        Create
+      </Button>
     </div>
   );
 }
@@ -64,6 +96,12 @@ export function Step3Resources({ draft, onChange }: Step3ResourcesProps) {
   const { data: policyData } = useQuery({
     queryKey: ["guardrail-policies", "list"],
     queryFn: listGuardrailPolicies,
+  });
+  const isOrchestrator = draft.agent_type === "orchestrator";
+  const { data: agentData } = useQuery({
+    queryKey: ["agents", "list", "for-wizard"],
+    queryFn: () => listAgents({ limit: 100 }),
+    enabled: isOrchestrator,
   });
 
   const kbItems: WizardResourceSelection[] =
@@ -90,13 +128,11 @@ export function Step3Resources({ draft, onChange }: Step3ResourcesProps) {
       <h2 className="text-sm font-semibold text-navy">Resources</h2>
 
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-medium text-navy">Knowledge bases</p>
-          <Button size="sm" variant="outline" onClick={() => setSlideOver("knowledge_base")}>
-            <Plus size={13} />
-            Create
-          </Button>
-        </div>
+        <SectionHeader
+          title="Knowledge bases"
+          selectedCount={draft.knowledge_bases.length}
+          onCreate={() => setSlideOver("knowledge_base")}
+        />
         <ResourceGrid
           items={kbItems}
           selectedIds={draft.knowledge_bases.map((k) => k.resource_id)}
@@ -105,13 +141,11 @@ export function Step3Resources({ draft, onChange }: Step3ResourcesProps) {
       </div>
 
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-medium text-navy">Tools</p>
-          <Button size="sm" variant="outline" onClick={() => setSlideOver("tool")}>
-            <Plus size={13} />
-            Create
-          </Button>
-        </div>
+        <SectionHeader
+          title="Tools"
+          selectedCount={draft.tools.length}
+          onCreate={() => setSlideOver("tool")}
+        />
         <ResourceGrid
           items={toolItems}
           selectedIds={draft.tools.map((t) => t.resource_id)}
@@ -120,13 +154,11 @@ export function Step3Resources({ draft, onChange }: Step3ResourcesProps) {
       </div>
 
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-medium text-navy">Skills</p>
-          <Button size="sm" variant="outline" onClick={() => setSlideOver("skill")}>
-            <Plus size={13} />
-            Create
-          </Button>
-        </div>
+        <SectionHeader
+          title="Skills"
+          selectedCount={draft.skills.length}
+          onCreate={() => setSlideOver("skill")}
+        />
         <ResourceGrid
           items={skillItems}
           selectedIds={draft.skills.map((s) => s.resource_id)}
@@ -135,13 +167,11 @@ export function Step3Resources({ draft, onChange }: Step3ResourcesProps) {
       </div>
 
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-medium text-navy">Guardrail policy</p>
-          <Button size="sm" variant="outline" onClick={() => setSlideOver("guardrail_policy")}>
-            <Plus size={13} />
-            Create
-          </Button>
-        </div>
+        <SectionHeader
+          title="Guardrail policy"
+          selectedCount={draft.guardrail_policy ? 1 : 0}
+          onCreate={() => setSlideOver("guardrail_policy")}
+        />
         <ResourceGrid
           items={policyItems}
           selectedIds={draft.guardrail_policy ? [draft.guardrail_policy.resource_id] : []}
@@ -153,6 +183,43 @@ export function Step3Resources({ draft, onChange }: Step3ResourcesProps) {
           }
         />
       </div>
+
+      {isOrchestrator ? (
+        <div>
+          <p className="mb-2 text-sm font-medium text-navy">Sub-agents</p>
+          <div className="flex flex-wrap gap-2">
+            {(agentData?.items ?? []).map((a) => {
+              const active = draft.sub_agent_ids.includes(a.agent_id);
+              return (
+                <button
+                  key={a.agent_id}
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      sub_agent_ids: active
+                        ? draft.sub_agent_ids.filter((id) => id !== a.agent_id)
+                        : [...draft.sub_agent_ids, a.agent_id],
+                    })
+                  }
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    active
+                      ? "border-teal bg-teal/10 text-teal"
+                      : "border-border text-muted-foreground hover:border-teal/40",
+                  )}
+                >
+                  {a.name} · {a.agent_type} · {a.status.toLowerCase()}
+                </button>
+              );
+            })}
+          </div>
+          {(agentData?.items.length ?? 0) === 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              No agents yet? Create standard agents first, then attach them here.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <ResourceSlideOver
         kind={slideOver}

@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { getModelCatalog } from "@/api/platform";
 import { Slider } from "@/components/common";
 import { cn } from "@/lib/utils";
 import type { WizardDraft } from "@/types/agent-wizard";
@@ -23,6 +25,14 @@ interface Step4IntelligenceProps {
 }
 
 export function Step4Intelligence({ draft, onChange }: Step4IntelligenceProps) {
+  // U-07: a free-text Model ID field let a typo pass validation here and
+  // fail at runtime with a 502 from the model router. The catalog is
+  // backend-authoritative (R37) — never hardcode production model IDs.
+  const modelCatalogQuery = useQuery({ queryKey: ["platform", "models"], queryFn: getModelCatalog });
+  const modelsForProvider =
+    modelCatalogQuery.data?.models.filter((m) => m.model_provider === draft.model_provider) ?? [];
+  const currentModelInCatalog = modelsForProvider.some((m) => m.model_id === draft.model_id);
+
   return (
     <section className="space-y-5 rounded-lg border border-border bg-card p-5">
       <h2 className="text-sm font-semibold text-navy">Intelligence</h2>
@@ -44,11 +54,35 @@ export function Step4Intelligence({ draft, onChange }: Step4IntelligenceProps) {
         </div>
         <div>
           <label className="text-sm font-medium text-navy">Model ID</label>
-          <input
-            className={cn(inputClass, "mt-1")}
-            value={draft.model_id}
-            onChange={(e) => onChange({ model_id: e.target.value })}
-          />
+          {modelCatalogQuery.isError ? (
+            <>
+              <input
+                className={cn(inputClass, "mt-1")}
+                value={draft.model_id}
+                onChange={(e) => onChange({ model_id: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-amber-700">
+                Could not load models — enter model ID manually.
+              </p>
+            </>
+          ) : (
+            <select
+              className={cn(inputClass, "mt-1")}
+              disabled={modelCatalogQuery.isPending}
+              value={draft.model_id}
+              onChange={(e) => onChange({ model_id: e.target.value })}
+            >
+              {modelCatalogQuery.isPending ? <option>Loading models…</option> : null}
+              {!currentModelInCatalog && draft.model_id ? (
+                <option value={draft.model_id}>{draft.model_id} (current)</option>
+              ) : null}
+              {modelsForProvider.map((m) => (
+                <option key={m.model_id} value={m.model_id}>
+                  {m.display_name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 

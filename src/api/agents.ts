@@ -9,8 +9,10 @@ import type {
   DeleteAgentResponse,
   DeployResponse,
   GenerateIaCResponse,
+  IaCStatusResponse,
   RollbackRequest,
   RollbackResponse,
+  TerraformValidationMode,
   UpdateAgentRequest,
   UpdateAgentResponse,
   VersionDiffResponse,
@@ -107,9 +109,21 @@ export async function rollbackAgent(
   return data;
 }
 
-export async function generateIac(agentId: string): Promise<GenerateIaCResponse> {
+export async function generateIac(
+  agentId: string,
+  validationMode: TerraformValidationMode = "local",
+): Promise<GenerateIaCResponse> {
   const { data } = await httpClient.post<GenerateIaCResponse>(
     `/agents/${agentId}/generate-iac`,
+    null,
+    { params: { validation_mode: validationMode } },
+  );
+  return data;
+}
+
+export async function getIacStatus(agentId: string): Promise<IaCStatusResponse> {
+  const { data } = await httpClient.get<IaCStatusResponse>(
+    `/agents/${agentId}/iac/status`,
   );
   return data;
 }
@@ -133,10 +147,15 @@ export async function listAgentDeployments(
 export async function invokePlayground(
   agentId: string,
   request: PlaygroundRequest,
+  // U-10: skips the real LLM/guardrail Bedrock calls server-side (A-02) —
+  // useful wherever real provider credentials aren't available (e.g. this
+  // IaC-test stage's local dev environment).
+  mock = false,
 ): Promise<PlaygroundResponse> {
   const { data } = await httpClient.post<PlaygroundResponse>(
     `/agents/${agentId}/playground`,
     request,
+    { params: mock ? { mock: true } : undefined },
   );
   return data;
 }

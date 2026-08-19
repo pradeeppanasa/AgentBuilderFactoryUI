@@ -66,6 +66,11 @@ export function OtelEndpointForm({ initialEndpoint, canWrite, onSaved }: OtelEnd
         Spans from the agent runtime are exported to this endpoint. This is typically your
         customer-controlled OTel collector, AWS Distro for OTel (ADOT), or a local X-Ray daemon.
       </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Compatible with any OTLP-receiving backend. Langfuse, Datadog, Grafana/Loki, New Relic,
+        and Dynatrace each have their own card below — use this field only for a collector this
+        page has no dedicated card for.
+      </p>
 
       {validationError ? (
         <p className="mt-2 text-xs text-destructive">{validationError}</p>

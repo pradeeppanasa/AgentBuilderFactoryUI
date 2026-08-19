@@ -1,11 +1,11 @@
 import { httpClient } from "./http";
-import type { TaskPlannerAnalyzeRequest, TaskPlannerProposal } from "@/types/task-planner";
+import type { TaskPlannerAnalyzeRequest, TaskPlannerResponse } from "@/types/task-planner";
 
-export async function analyzeTaskPlanner(
+export async function analyzeTaskPlannerArchitecture(
   request: TaskPlannerAnalyzeRequest,
-): Promise<TaskPlannerProposal> {
-  const { data } = await httpClient.post<TaskPlannerProposal>(
-    "/platform/task-planner/analyze",
+): Promise<TaskPlannerResponse> {
+  const { data } = await httpClient.post<TaskPlannerResponse>(
+    "/platform/task-planner/analyze-architecture",
     request,
   );
   return data;

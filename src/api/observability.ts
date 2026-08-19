@@ -1,11 +1,17 @@
 import { httpClient } from "./http";
 import type {
   DatadogConfig,
+  DynatraceConfig,
+  GrafanaConfig,
   LangfuseConfig,
+  NewRelicConfig,
   ObservabilityConfigResponse,
   OtelEndpointConfig,
   SaveDatadogRequest,
+  SaveDynatraceRequest,
+  SaveGrafanaRequest,
   SaveLangfuseRequest,
+  SaveNewRelicRequest,
   SaveOtelEndpointRequest,
 } from "@/types/observability";
 
@@ -51,6 +57,51 @@ export async function getDatadogConfig(): Promise<DatadogConfig> {
 export async function saveDatadogConfig(request: SaveDatadogRequest): Promise<DatadogConfig> {
   const { data } = await httpClient.patch<DatadogConfig>(
     "/admin/settings/integrations/datadog",
+    request,
+  );
+  return data;
+}
+
+export async function getGrafanaConfig(): Promise<GrafanaConfig> {
+  const { data } = await httpClient.get<GrafanaConfig>("/admin/settings/integrations/grafana");
+  return data;
+}
+
+export async function saveGrafanaConfig(request: SaveGrafanaRequest): Promise<GrafanaConfig> {
+  const { data } = await httpClient.patch<GrafanaConfig>(
+    "/admin/settings/integrations/grafana",
+    request,
+  );
+  return data;
+}
+
+export async function getNewRelicConfig(): Promise<NewRelicConfig> {
+  const { data } = await httpClient.get<NewRelicConfig>(
+    "/admin/settings/integrations/new-relic",
+  );
+  return data;
+}
+
+export async function saveNewRelicConfig(request: SaveNewRelicRequest): Promise<NewRelicConfig> {
+  const { data } = await httpClient.patch<NewRelicConfig>(
+    "/admin/settings/integrations/new-relic",
+    request,
+  );
+  return data;
+}
+
+export async function getDynatraceConfig(): Promise<DynatraceConfig> {
+  const { data } = await httpClient.get<DynatraceConfig>(
+    "/admin/settings/integrations/dynatrace",
+  );
+  return data;
+}
+
+export async function saveDynatraceConfig(
+  request: SaveDynatraceRequest,
+): Promise<DynatraceConfig> {
+  const { data } = await httpClient.patch<DynatraceConfig>(
+    "/admin/settings/integrations/dynatrace",
     request,
   );
   return data;

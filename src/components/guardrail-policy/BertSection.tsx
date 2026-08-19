@@ -3,6 +3,7 @@ import { Badge, InfoTooltip, Slider, Toggle } from "@/components/common";
 import { Section } from "./SectionShell";
 import { ComingSoonBadge } from "./ComingSoonBadge";
 import { selectClass } from "./formClasses";
+import { cn } from "@/lib/utils";
 import {
   BERT_BLOCK_THRESHOLD_MIN,
   BERT_ESCALATE_THRESHOLD_MAX,
@@ -32,15 +33,26 @@ function SubCheckRow({
   children?: ReactNode;
 }) {
   return (
-    <div className="rounded-md border border-border px-4 py-3">
+    <div
+      className={cn(
+        "rounded-lg border px-4 py-3.5 transition-colors",
+        enabled ? "border-teal/30 bg-teal/[0.03]" : "border-border",
+      )}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-navy">{label}</span>
+          <span
+            className={cn("h-1.5 w-1.5 shrink-0 rounded-full", enabled ? "bg-teal" : "bg-border")}
+            aria-hidden="true"
+          />
+          <span className="text-sm font-medium text-navy">{label}</span>
           {storedOnlyNote ? <ComingSoonBadge note={storedOnlyNote} /> : null}
         </div>
         <Toggle checked={enabled} onChange={onToggle} disabled={readOnly} />
       </div>
-      {enabled && children ? <div className="mt-3 space-y-3">{children}</div> : null}
+      {enabled && children ? (
+        <div className="mt-3.5 space-y-3.5 border-t border-teal/15 pt-3.5">{children}</div>
+      ) : null}
     </div>
   );
 }

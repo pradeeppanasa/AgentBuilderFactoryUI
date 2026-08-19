@@ -33,9 +33,20 @@ export function Step5Behaviour({ draft, onChange }: Step5BehaviourProps) {
         >
           <option value="on_demand">On-demand</option>
           <option value="scheduled">Scheduled</option>
-          <option value="webhook">Webhook</option>
-          <option value="step_function">Step Function</option>
+          {/* U-03: webhook/step_function have no backing config fields yet
+              (AgentConfiguration.trigger only carries cron_expression for
+              scheduled triggers) — disabled rather than shown as
+              selectable-but-silently-does-nothing. */}
+          <option value="webhook" disabled title="Coming soon">
+            Webhook (coming soon)
+          </option>
+          <option value="step_function" disabled title="Coming soon">
+            Step Function (coming soon)
+          </option>
         </select>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Webhook and Step Function triggers are not yet configurable — coming soon.
+        </p>
       </div>
 
       {draft.trigger.type === "scheduled" ? (
@@ -47,6 +58,7 @@ export function Step5Behaviour({ draft, onChange }: Step5BehaviourProps) {
             value={draft.trigger.cron_expression ?? ""}
             onChange={(e) => patchTrigger({ cron_expression: e.target.value || null })}
           />
+          <p className="mt-1 text-xs text-muted-foreground">All times are UTC.</p>
         </div>
       ) : null}
 

@@ -6,9 +6,15 @@ export interface NavGroup {
   items: { id: string; label: string }[];
 }
 
-// Left sidebar nav (fixed 200px) + right scrollable form (max 680px) — 37.14's
+// Left sidebar nav (fixed 224px) + right scrollable form (max 680px) — 37.14's
 // two-column layout. Active section is whichever the user last clicked; we
 // don't scroll-spy against page position to keep this simple and predictable.
+//
+// Design pass (2026-08-19): the original 11px uppercase group labels and 14px
+// items with a thin left border read as cramped for a form this long and
+// dense. Bumped group labels and item text up a size, switched the active
+// state to a filled pill (easier to spot at a glance while scrolling a long
+// form) and gave items more vertical breathing room.
 export function SectionNav({
   groups,
   activeId,
@@ -19,25 +25,25 @@ export function SectionNav({
   onSelect: (id: string) => void;
 }) {
   return (
-    <nav className="w-[200px] shrink-0 space-y-4">
+    <nav className="w-[224px] shrink-0 space-y-5">
       {groups.map((group) => (
         <div key={group.title}>
           {group.title ? (
-            <p className="px-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
               {group.title}
             </p>
           ) : null}
-          <div className="mt-1 space-y-0.5">
+          <div className={cn("space-y-0.5", group.title ? "mt-1.5" : undefined)}>
             {group.items.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => onSelect(item.id)}
                 className={cn(
-                  "block w-full rounded-md border-l-2 px-2.5 py-1.5 text-left text-sm transition-colors",
+                  "block w-full rounded-lg px-3 py-2 text-left text-[15px] transition-colors",
                   activeId === item.id
-                    ? "border-teal bg-teal/5 font-medium text-teal"
-                    : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-navy",
+                    ? "bg-teal/10 font-semibold text-teal"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-navy",
                 )}
               >
                 {item.label}
@@ -64,13 +70,18 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-4 rounded-lg border border-border bg-card p-5">
-      <div className="flex items-center gap-2">
-        <h2 className="text-sm font-semibold text-navy">{title}</h2>
+    <section
+      id={id}
+      className="scroll-mt-4 rounded-xl border border-border bg-card p-6 shadow-sm"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-base font-semibold text-navy">{title}</h2>
         {badge}
       </div>
-      {description ? <p className="mt-1 text-xs text-muted-foreground">{description}</p> : null}
-      <div className="mt-4 space-y-4">{children}</div>
+      {description ? (
+        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
+      ) : null}
+      <div className="mt-5 space-y-4">{children}</div>
     </section>
   );
 }

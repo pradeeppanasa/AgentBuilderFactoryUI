@@ -11,12 +11,13 @@ export type AgentStatus =
   | "ROLLED_BACK"
   | "DEPRECATED";
 
-export type AgentType =
-  | "conversational"
-  | "task"
-  | "rag"
-  | "multi-step"
-  | "orchestrator";
+// Retired 2026-08-18 (CLAUDE.md Section 38.6 Wizard Redesign):
+// "conversational"/"task" collapsed into "standard", "multi-step" collapsed
+// into "orchestrator" — matches app/modules/registry/models.py's AgentType
+// exactly. The backend Literal rejects the old values on new writes; only
+// pre-existing DynamoDB records with an old value still read back fine via
+// the backend's own normalise_agent_type() read-time shim.
+export type AgentType = "standard" | "orchestrator" | "rag" | "tool_executor";
 
 export type ModelProvider = "bedrock" | "azure_openai" | "self_hosted";
 
@@ -207,6 +208,16 @@ export interface AgentConfigurationInput {
   top_p?: number;
   max_tokens?: number;
   fallback_model_string?: string | null;
+  // QA U-18 fix: every field below has a Python default on the backend's
+  // AgentConfiguration model (registry/models.py), so POST /agents can
+  // carry the wizard's resource selections directly. Previously the
+  // wizard always followed create with a second PUT just to attach these
+  // — that PUT unconditionally creates a new version (versioner.py), so
+  // every wizard-created agent started at v2 instead of v1.
+  kb_id?: string | null;
+  guardrail_policy_id?: string | null;
+  tool_instances?: ToolInstanceConfig[];
+  output_schema?: OutputSchemaConfig | null;
 }
 
 export type VersionStatus =
@@ -299,6 +310,11 @@ export interface CreateAgentRequest {
   business_purpose: string;
   agent_type: AgentType;
   configuration: AgentConfigurationInput;
+  tags?: Record<string, string>;
+  // QA U-21: v1's change_description was previously always the hardcoded
+  // "Initial version" string, discarding whatever the wizard's Step 10
+  // Changelog field said. Optional — omitting it keeps the old behaviour.
+  changelog?: string | null;
 }
 
 // The backend's PUT /agents/{id} accepts the FULL AgentConfiguration (not
@@ -407,6 +423,28 @@ export interface DeployResponse {
   pull_request_id: string;
 }
 
+// Development Terraform Validation Mode. "local" (default) always runs and
+// never requires AWS credentials or contacts a real AWS account — it only
+// generates the Terraform package and runs fmt/init -backend=false/validate.
+// "panasa_vpc"/"customer_vpc" are admin/developer-only placeholders for
+// later stages (Section 35 Stage 2/3): hidden from every other role, and
+// even when selected they still only run the same local validation —
+// no real deployment happens in Stage 1 (backend returns `environment_note`
+// explaining this).
+export type TerraformValidationMode = "local" | "panasa_vpc" | "customer_vpc";
+
+export interface CheckResult {
+  name: string;
+  passed: boolean;
+  detail: string;
+}
+
+export interface IaCValidationReport {
+  passed: boolean;
+  checks: CheckResult[];
+  tool: string;
+}
+
 export interface GenerateIaCResponse {
   agent_id: string;
   version: number;
@@ -414,4 +452,26 @@ export interface GenerateIaCResponse {
   iac_version: string;
   s3_key: string;
   modules: string[];
+  validation_report: IaCValidationReport;
+  validation_mode: TerraformValidationMode;
+  environment_note: string | null;
+}
+
+// GET /agents/{agent_id}/iac/status (Wizard Redesign QA A-04/U-08).
+// generate-iac renders + validates synchronously in a single request (no
+// long-running job to observe mid-flight) — this reports the outcome of the
+// most recent completed generate-iac call, not a live in-progress state. A
+// caller that polls right after triggering generate-iac sees
+// "completed"/"failed" on its first poll.
+export interface IaCStageStatus {
+  name: string;
+  status: "completed" | "pending";
+}
+
+export interface IaCStatusResponse {
+  agent_id: string;
+  version: number;
+  status: "not_started" | "completed" | "failed";
+  stages: IaCStageStatus[];
+  validation: IaCValidationReport | null;
 }

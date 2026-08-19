@@ -10,3 +10,4 @@ export * from "./Modal";
 export * from "./ResourceDeleteDialog";
 export * from "./ArchivedToggle";
 export * from "./UndoToastContainer";
+export * from "./NotifyToastContainer";

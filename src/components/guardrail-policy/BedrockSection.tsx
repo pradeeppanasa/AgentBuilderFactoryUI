@@ -2,6 +2,7 @@ import { Badge, Toggle } from "@/components/common";
 import { Section } from "./SectionShell";
 import { ComingSoonBadge } from "./ComingSoonBadge";
 import { inputClass, selectClass } from "./formClasses";
+import { cn } from "@/lib/utils";
 import {
   BEDROCK_CREDENTIAL_STORED_ONLY_NOTE,
   BEDROCK_FILTER_LABELS,
@@ -37,10 +38,22 @@ function FilterCard({
   readOnly: boolean;
   outputDisabled?: boolean;
 }) {
+  const active = value.input_strength !== "NONE" || value.output_strength !== "NONE";
   return (
-    <div className="rounded-md border border-border p-3">
-      <p className="text-sm font-medium text-navy">{label}</p>
-      <div className="mt-2 space-y-2">
+    <div
+      className={cn(
+        "rounded-lg border p-3.5 transition-colors",
+        active ? "border-teal/30 bg-teal/[0.03]" : "border-border",
+      )}
+    >
+      <div className="flex items-center gap-1.5">
+        <span
+          className={cn("h-1.5 w-1.5 shrink-0 rounded-full", active ? "bg-teal" : "bg-border")}
+          aria-hidden="true"
+        />
+        <p className="text-sm font-medium text-navy">{label}</p>
+      </div>
+      <div className="mt-2.5 space-y-2">
         <label className="flex items-center justify-between gap-2 text-xs">
           <span className="text-muted-foreground">Input strength</span>
           <select

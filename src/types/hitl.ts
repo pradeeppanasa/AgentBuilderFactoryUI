@@ -28,7 +28,10 @@ export function defaultHitlConfig(): HitlConfig {
   return {
     trigger_on: "low_confidence",
     confidence_threshold: 0.7,
-    reviewer_role: "admin",
+    // QA finding U-06 (Wizard Redesign, 2026-08-18): pre-selecting a role
+    // here (previously "admin") let a KYC/AML/fraud reviewer role go
+    // unset by accident. Empty forces an explicit choice in Step 6.
+    reviewer_role: "",
     notification_channel: "email",
     timeout_hours: 24,
     timeout_action: "reject",

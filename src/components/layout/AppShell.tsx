@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { UndoToastContainer } from "@/components/common/UndoToastContainer";
+import { NotifyToastContainer } from "@/components/common/NotifyToastContainer";
 
 export function AppShell() {
   return (
@@ -12,6 +13,7 @@ export function AppShell() {
         </div>
       </main>
       <UndoToastContainer />
+      <NotifyToastContainer />
     </div>
   );
 }

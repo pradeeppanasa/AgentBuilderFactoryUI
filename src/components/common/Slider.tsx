@@ -27,7 +27,7 @@ export function Slider({
     <div>
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-navy">{label}</label>
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-navy">
           {formatValue ? formatValue(value) : value}
         </span>
       </div>
@@ -39,7 +39,7 @@ export function Slider({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-2 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-teal disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-2.5 h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-teal disabled:cursor-not-allowed disabled:opacity-50"
       />
       {describe ? (
         <p className="mt-1 text-xs text-muted-foreground">{describe(value)}</p>

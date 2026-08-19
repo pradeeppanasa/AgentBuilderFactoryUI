@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Send, Trash2 } from "lucide-react";
+import { FlaskConical, Send, Trash2 } from "lucide-react";
 import { invokePlayground } from "@/api/agents";
 import { Badge, Button, InfoTooltip, Slider, Toggle } from "@/components/common";
 import { useAuthStore } from "@/store/useAuthStore";
-import { cn } from "@/lib/utils";
+import { axiosErrorDetail, axiosErrorStatus, cn } from "@/lib/utils";
 import type { PlaygroundChatMessage, PlaygroundMetrics } from "@/types/playground";
 
 function formatCost(cost: number | null): string {
@@ -147,30 +147,52 @@ function MetricsPanel({ metrics }: { metrics: PlaygroundMetrics | undefined }) {
   );
 }
 
-export function Playground({ agentId }: { agentId: string }) {
+interface PlaygroundProps {
+  agentId: string;
+  onSkip?: () => void;
+  // U-12/U-13: lets the wizard's Guardrail-test/Resource-test tabs
+  // pre-fill a representative probe message (jailbreak attempt, PII
+  // string, KB-triggering question, ...) without duplicating the send/
+  // metrics UI — the user still reviews and clicks Send themselves.
+  presetMessage?: string | null;
+}
+
+export function Playground({ agentId, onSkip, presetMessage }: PlaygroundProps) {
   const role = useAuthStore((state) => state.currentUser?.role);
   const isAdmin = role === "admin";
 
   const [messages, setMessages] = useState<PlaygroundChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [lastSentMessage, setLastSentMessage] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [disableGuardrails, setDisableGuardrails] = useState(false);
   const [temperatureOverride, setTemperatureOverride] = useState<number | null>(null);
+  // U-10: lets this stage be exercised without real Bedrock credentials —
+  // sends ?mock=true so the backend returns a canned response (A-02).
+  const [mockMode, setMockMode] = useState(false);
+
+  useEffect(() => {
+    if (presetMessage) setInput(presetMessage);
+  }, [presetMessage]);
 
   const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
 
   const sendMutation = useMutation({
     mutationFn: (message: string) =>
-      invokePlayground(agentId, {
-        message,
-        session_id: sessionId,
-        // Every field here is admin-only server-side (any non-default value
-        // from a non-admin gets a 403) — the whole panel below is gated on
-        // isAdmin so a non-admin never has a way to trigger one.
-        overrides: isAdmin
-          ? { disable_guardrails: disableGuardrails, temperature: temperatureOverride }
-          : undefined,
-      }),
+      invokePlayground(
+        agentId,
+        {
+          message,
+          session_id: sessionId,
+          // Every field here is admin-only server-side (any non-default value
+          // from a non-admin gets a 403) — the whole panel below is gated on
+          // isAdmin so a non-admin never has a way to trigger one.
+          overrides: isAdmin
+            ? { disable_guardrails: disableGuardrails, temperature: temperatureOverride }
+            : undefined,
+        },
+        mockMode,
+      ),
     onSuccess: (response) => {
       setSessionId(response.session_id);
       setMessages((prev) => [
@@ -190,15 +212,50 @@ export function Playground({ agentId }: { agentId: string }) {
     if (!trimmed || sendMutation.isPending) return;
     setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
     setInput("");
+    setLastSentMessage(trimmed);
     sendMutation.mutate(trimmed);
+  }
+
+  function handleRetry() {
+    if (!lastSentMessage || sendMutation.isPending) return;
+    sendMutation.mutate(lastSentMessage);
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
-        Test the live agent configuration. Playground messages are logged separately and
-        never count toward production usage.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          Test the live agent configuration. Playground messages are logged separately and
+          never count toward production usage.
+        </p>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <InfoTooltip text="Mock mode skips the real model call and returns a canned response — useful when real provider credentials aren't configured." />
+          <div className="flex rounded-md border border-border p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setMockMode(false)}
+              className={cn(
+                "rounded px-2.5 py-1 font-medium transition-colors",
+                !mockMode ? "bg-teal text-white" : "text-muted-foreground hover:text-navy",
+              )}
+            >
+              Live mode
+            </button>
+            <button
+              type="button"
+              onClick={() => setMockMode(true)}
+              className={cn(
+                "flex items-center gap-1 rounded px-2.5 py-1 font-medium transition-colors",
+                mockMode ? "bg-teal text-white" : "text-muted-foreground hover:text-navy",
+              )}
+            >
+              <FlaskConical size={12} />
+              Mock mode
+            </button>
+          </div>
+        </div>
+      </div>
 
       {isAdmin ? (
         <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-muted/20 p-3">
@@ -277,8 +334,27 @@ export function Playground({ agentId }: { agentId: string }) {
             ) : null}
 
             {sendMutation.isError ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                Could not reach the playground endpoint.
+              <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <p className="font-medium">
+                  Playground error
+                  {axiosErrorStatus(sendMutation.error) !== null
+                    ? ` (${axiosErrorStatus(sendMutation.error)})`
+                    : ""}
+                </p>
+                <p>
+                  {axiosErrorDetail(sendMutation.error) ??
+                    "Could not reach the playground endpoint."}
+                </p>
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" variant="outline" onClick={handleRetry}>
+                    Retry
+                  </Button>
+                  {onSkip ? (
+                    <Button size="sm" variant="ghost" onClick={onSkip}>
+                      Skip test →
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </div>

@@ -3,7 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getObservabilityConfig,
   saveDatadogConfig,
+  saveDynatraceConfig,
+  saveGrafanaConfig,
   saveLangfuseConfig,
+  saveNewRelicConfig,
 } from "@/api/observability";
 import { Button, LoadingSpinner } from "@/components/common";
 import { DataBoundaryNotice } from "@/components/observability/DataBoundaryNotice";
@@ -42,6 +45,15 @@ export default function ObservabilitySettings() {
   const [datadogApiKey, setDatadogApiKey] = useState("");
   const [datadogSite, setDatadogSite] = useState<DatadogSite>("datadoghq.com");
 
+  const [grafanaEnabled, setGrafanaEnabled] = useState(false);
+  const [grafanaEndpoint, setGrafanaEndpoint] = useState("");
+
+  const [newRelicEnabled, setNewRelicEnabled] = useState(false);
+  const [newRelicApiKey, setNewRelicApiKey] = useState("");
+
+  const [dynatraceEnabled, setDynatraceEnabled] = useState(false);
+  const [dynatraceEndpoint, setDynatraceEndpoint] = useState("");
+
   useEffect(() => {
     if (!data) return;
     setLangfuseEnabled(data.langfuse.enabled);
@@ -49,6 +61,11 @@ export default function ObservabilitySettings() {
     setLangfuseHost(data.langfuse.host ?? "");
     setDatadogEnabled(data.datadog.enabled);
     setDatadogSite(data.datadog.site ?? "datadoghq.com");
+    setGrafanaEnabled(data.grafana.enabled);
+    setGrafanaEndpoint(data.grafana.endpoint ?? "");
+    setNewRelicEnabled(data.new_relic.enabled);
+    setDynatraceEnabled(data.dynatrace.enabled);
+    setDynatraceEndpoint(data.dynatrace.endpoint ?? "");
   }, [data]);
 
   const langfuseMutation = useMutation({
@@ -79,6 +96,46 @@ export default function ObservabilitySettings() {
         prev ? { ...prev, datadog: updated } : prev,
       );
       setDatadogApiKey("");
+    },
+  });
+
+  const grafanaMutation = useMutation({
+    mutationFn: () =>
+      saveGrafanaConfig({
+        enabled: grafanaEnabled,
+        endpoint: grafanaEndpoint || undefined,
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(QUERY_KEY, (prev: typeof data) =>
+        prev ? { ...prev, grafana: updated } : prev,
+      );
+    },
+  });
+
+  const newRelicMutation = useMutation({
+    mutationFn: () =>
+      saveNewRelicConfig({
+        enabled: newRelicEnabled,
+        api_key: newRelicApiKey || undefined,
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(QUERY_KEY, (prev: typeof data) =>
+        prev ? { ...prev, new_relic: updated } : prev,
+      );
+      setNewRelicApiKey("");
+    },
+  });
+
+  const dynatraceMutation = useMutation({
+    mutationFn: () =>
+      saveDynatraceConfig({
+        enabled: dynatraceEnabled,
+        endpoint: dynatraceEndpoint || undefined,
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(QUERY_KEY, (prev: typeof data) =>
+        prev ? { ...prev, dynatrace: updated } : prev,
+      );
     },
   });
 
@@ -241,6 +298,124 @@ export default function ObservabilitySettings() {
                   </option>
                 ))}
               </select>
+            </div>
+          </IntegrationCard>
+
+          <IntegrationCard
+            title="Grafana / Loki"
+            description="Accepts spans over plain OTLP — no separate API key needed. Point your OTel collector's export target at your Grafana/Loki endpoint."
+            enabled={grafanaEnabled}
+            disabled={!canWrite}
+            onToggle={setGrafanaEnabled}
+            footer={
+              <>
+                <Button
+                  size="sm"
+                  variant="accent"
+                  disabled={!canWrite || grafanaMutation.isPending}
+                  onClick={() => grafanaMutation.mutate()}
+                >
+                  {grafanaMutation.isPending ? "Saving…" : "Save"}
+                </Button>
+                {grafanaMutation.isError ? (
+                  <p className="mt-2 text-xs text-destructive">
+                    {axiosErrorDetail(grafanaMutation.error) ?? "Failed to save Grafana settings."}
+                  </p>
+                ) : null}
+                {grafanaMutation.isSuccess ? (
+                  <p className="mt-2 text-xs text-emerald-700">Grafana settings saved.</p>
+                ) : null}
+              </>
+            }
+          >
+            <div>
+              <label className="text-xs font-medium text-navy">Endpoint</label>
+              <input
+                className={cn(inputClass, "mt-1")}
+                placeholder="https://loki.internal.example.com/otlp"
+                value={grafanaEndpoint}
+                disabled={!canWrite}
+                onChange={(e) => setGrafanaEndpoint(e.target.value)}
+              />
+            </div>
+          </IntegrationCard>
+
+          <IntegrationCard
+            title="New Relic"
+            description="Route OTel spans to New Relic. Configure your OTel collector to export to New Relic's endpoint, then enter your license key here for metadata tagging."
+            enabled={newRelicEnabled}
+            disabled={!canWrite}
+            onToggle={setNewRelicEnabled}
+            footer={
+              <>
+                <Button
+                  size="sm"
+                  variant="accent"
+                  disabled={!canWrite || newRelicMutation.isPending}
+                  onClick={() => newRelicMutation.mutate()}
+                >
+                  {newRelicMutation.isPending ? "Saving…" : "Save"}
+                </Button>
+                {newRelicMutation.isError ? (
+                  <p className="mt-2 text-xs text-destructive">
+                    {axiosErrorDetail(newRelicMutation.error) ?? "Failed to save New Relic settings."}
+                  </p>
+                ) : null}
+                {newRelicMutation.isSuccess ? (
+                  <p className="mt-2 text-xs text-emerald-700">New Relic settings saved.</p>
+                ) : null}
+              </>
+            }
+          >
+            <div>
+              <label className="text-xs font-medium text-navy">API Key</label>
+              <input
+                type="password"
+                className={cn(inputClass, "mt-1")}
+                placeholder={data?.new_relic.api_key ? "•••• (unchanged)" : ""}
+                value={newRelicApiKey}
+                disabled={!canWrite}
+                onChange={(e) => setNewRelicApiKey(e.target.value)}
+              />
+            </div>
+          </IntegrationCard>
+
+          <IntegrationCard
+            title="Dynatrace"
+            description="Accepts spans over plain OTLP — no separate API key needed. Point your OTel collector's export target at your Dynatrace endpoint."
+            enabled={dynatraceEnabled}
+            disabled={!canWrite}
+            onToggle={setDynatraceEnabled}
+            footer={
+              <>
+                <Button
+                  size="sm"
+                  variant="accent"
+                  disabled={!canWrite || dynatraceMutation.isPending}
+                  onClick={() => dynatraceMutation.mutate()}
+                >
+                  {dynatraceMutation.isPending ? "Saving…" : "Save"}
+                </Button>
+                {dynatraceMutation.isError ? (
+                  <p className="mt-2 text-xs text-destructive">
+                    {axiosErrorDetail(dynatraceMutation.error) ?? "Failed to save Dynatrace settings."}
+                  </p>
+                ) : null}
+                {dynatraceMutation.isSuccess ? (
+                  <p className="mt-2 text-xs text-emerald-700">Dynatrace settings saved.</p>
+                ) : null}
+              </>
+            }
+          >
+            <div>
+              <label className="text-xs font-medium text-navy">Endpoint</label>
+              <input
+                className={cn(inputClass, "mt-1")}
+                placeholder="https://abc12345.live.dynatrace.com"
+                value={dynatraceEndpoint}
+                disabled={!canWrite}
+                onChange={(e) => setDynatraceEndpoint(e.target.value)}
+              />
             </div>
           </IntegrationCard>
         </div>

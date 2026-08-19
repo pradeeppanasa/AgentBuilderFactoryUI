@@ -14,12 +14,22 @@
 // nowhere yet — same "stored only, not yet enforced" disclosure pattern as
 // guardrail policy Section 37.15, just one layer earlier (not even stored).
 
-export type WizardAgentType =
-  | "standard"
-  | "orchestrator"
-  | "task_planner"
-  | "rag"
-  | "tool_executor";
+// Trimmed to two values 2026-08-18 (Wizard Redesign round 2 — "Core
+// concept"): an agent has exactly two STRUCTURAL roles, Standard or
+// Orchestrator. RAG and Tool Executor are not roles — they describe what
+// resources are attached (a Standard agent with Knowledge Bases behaves as
+// RAG; a Standard agent with Tools behaves as a tool-user). Configured via
+// the Step 3 resource pickers, never selected here. The backend's real
+// AgentType (app/modules/registry/models.py) still has all four values for
+// agents created outside this wizard or before this redesign, but nothing
+// in the wizard's create-only flow should ever send "rag"/"tool_executor"
+// again — see WIZARD_TO_REAL_AGENT_TYPE below.
+export type WizardAgentType = "standard" | "orchestrator";
+
+// Step 1's creation mode (Wizard Redesign) — purely a wizard UX concept,
+// never sent to the API. "build_with_ai" reveals the Task Planner
+// description box; "orchestrator" pre-locks Step 2's Agent configuration.
+export type WizardCreationMode = "simple" | "orchestrator" | "build_with_ai";
 
 export type TriggerType = "on_demand" | "scheduled" | "webhook" | "step_function";
 
@@ -63,7 +73,17 @@ export interface WizardDraft {
   // Step 2 — Identity & Persona
   name: string;
   description: string;
+  // QA U-17: previously there was no dedicated field, so the wizard sent
+  // `description` for both `description` and `business_purpose` — every
+  // wizard-created agent showed identical text in both Overview rows.
+  // Optional: falls back to `description` at save time if left blank
+  // (see AgentWizard.tsx's toCreateAgentRequest), so existing behaviour for
+  // users who don't fill it in is unchanged.
+  business_purpose: string;
   agent_type: WizardAgentType;
+  // QA U-20: now sent on create (see toCreateAgentRequest) — a flat tag
+  // list maps to `{tag: ""}` on the wire, matching how AgentDetail already
+  // renders AgentRecord.tags.
   tags: string[];
   system_prompt: string;
   persona_name: string | null;
@@ -102,6 +122,11 @@ export interface WizardDraft {
 
   // Step 9 — Publish
   version_label: string;
+  // QA U-21: now sent as v1's change_description on create (see
+  // toCreateAgentRequest) instead of being discarded in favour of the
+  // hardcoded "Initial version" string. version_label above still has no
+  // backend field to land in — AgentVersionRecord's version is the plain
+  // integer counter, not a semantic string (see CLAUDE.md's own U-18 entry).
   changelog: string;
 }
 
@@ -109,6 +134,7 @@ export function defaultWizardDraft(): WizardDraft {
   return {
     name: "",
     description: "",
+    business_purpose: "",
     agent_type: "standard",
     tags: [],
     system_prompt: "",
@@ -146,21 +172,18 @@ export function defaultWizardDraft(): WizardDraft {
   };
 }
 
-// Maps a WizardAgentType to the real, already-live AgentType enum
-// (types/agent.ts) — the closest existing runtime concept for each new
-// wizard-only type, since the backend doesn't know these five values.
-export const WIZARD_TO_REAL_AGENT_TYPE: Record<WizardAgentType, "conversational" | "task" | "rag" | "multi-step" | "orchestrator"> = {
-  standard: "task",
+// Identity mapping — WizardAgentType is a strict subset of the real
+// AgentType now. Kept as an explicit map (rather than passing
+// draft.agent_type straight through) so call sites stay unaffected if the
+// two vocabularies ever diverge again.
+export const WIZARD_TO_REAL_AGENT_TYPE: Record<WizardAgentType, "standard" | "orchestrator"> = {
+  standard: "standard",
   orchestrator: "orchestrator",
-  task_planner: "task",
-  rag: "rag",
-  tool_executor: "task",
 };
 
+// "Agent role" (not "Agent type"/"Agent configuration" — Wizard Redesign
+// round 2) options — Standard or Orchestrator only.
 export const WIZARD_AGENT_TYPE_LABELS: Record<WizardAgentType, string> = {
   standard: "Standard",
   orchestrator: "Orchestrator",
-  task_planner: "Task planner",
-  rag: "RAG",
-  tool_executor: "Tool executor",
 };
