@@ -144,9 +144,9 @@ export default function ObservabilitySettings() {
       <div>
         <h1 className="text-2xl font-semibold text-navy">Observability &amp; Tracing</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Panasa emits OpenTelemetry spans from the agent runtime. CloudWatch and X-Ray are
-          always active. Configure optional integrations below — data is routed through your
-          own OTel collector, never through Panasa.
+          Logs, metrics, and distributed tracing are provided by default for every deployed
+          agent. Configure optional integrations below — data is routed through your own OTel
+          collector, never through Panasa.
         </p>
       </div>
 

@@ -1,5 +1,6 @@
 import { httpClient } from "./http";
 import type {
+  CapabilityDiscoveryResponse,
   DatadogConfig,
   DynatraceConfig,
   GrafanaConfig,
@@ -18,6 +19,16 @@ import type {
 export async function getObservabilityConfig(): Promise<ObservabilityConfigResponse> {
   const { data } = await httpClient.get<ObservabilityConfigResponse>(
     "/admin/settings/observability",
+  );
+  return data;
+}
+
+// Capability Discovery — provider-neutral capabilities derived from the
+// tenant's registered configuration + runtime metadata. See
+// app/modules/observability/capabilities.py for how these are resolved.
+export async function getObservabilityCapabilities(): Promise<CapabilityDiscoveryResponse> {
+  const { data } = await httpClient.get<CapabilityDiscoveryResponse>(
+    "/admin/settings/observability/capabilities",
   );
   return data;
 }

@@ -78,6 +78,38 @@ export function Step5Behaviour({ draft, onChange }: Step5BehaviourProps) {
         </select>
       </div>
 
+      {draft.output_format === "json" || draft.output_format === "structured" ? (
+        <div>
+          <label className="text-sm font-medium text-navy">Output JSON schema</label>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Shapes what the model is instructed to return, and what the Playground's mock mode
+            uses to fake a response without calling a real model. Leave blank to skip validation.
+          </p>
+          <textarea
+            className={cn(inputClass, "mt-1 h-40 resize-y font-mono text-xs")}
+            placeholder={
+              '{\n  "type": "object",\n  "properties": {\n    "verified": { "type": "boolean" },\n    "confidence": { "type": "number" }\n  }\n}'
+            }
+            value={draft.output_json_schema}
+            onChange={(e) => onChange({ output_json_schema: e.target.value })}
+          />
+          {draft.output_json_schema.trim() ? (
+            (() => {
+              try {
+                JSON.parse(draft.output_json_schema);
+                return null;
+              } catch {
+                return (
+                  <p className="mt-1 text-xs text-destructive">
+                    Not valid JSON — this schema will be ignored until fixed.
+                  </p>
+                );
+              }
+            })()
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="border-t border-border pt-4">
         <p className="mb-2 text-sm font-medium text-navy">Who can invoke</p>
         <div className="flex flex-wrap gap-2">

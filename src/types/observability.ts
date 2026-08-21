@@ -112,3 +112,37 @@ export const DATADOG_SITES: DatadogSite[] = [
 export function isValidHttpUrl(value: string): boolean {
   return /^https?:\/\/.+/i.test(value.trim());
 }
+
+// Capability Discovery — provider-neutral observability capabilities.
+// The UI renders `capability`/`status`/`detail` only. `adapters` is opaque
+// disclosure text (which infrastructure adapter(s) back this capability
+// server-side) — informational, never something the UI branches on. Which
+// provider (CloudWatch, X-Ray, Langfuse, ...) is behind a capability is
+// resolved by the backend's adapters (app/modules/observability/
+// capabilities.py); the core UI must never hard-code a provider name into
+// its rendering logic.
+export type ObservabilityCapabilityKind =
+  | "logs"
+  | "metrics"
+  | "distributed_tracing"
+  | "opentelemetry";
+
+export type CapabilityStatus = "active" | "inactive" | "unknown";
+
+export interface ObservabilityCapability {
+  capability: ObservabilityCapabilityKind;
+  status: CapabilityStatus;
+  detail: string;
+  adapters: string[];
+}
+
+export interface CapabilityDiscoveryResponse {
+  capabilities: ObservabilityCapability[];
+}
+
+export const CAPABILITY_LABELS: Record<ObservabilityCapabilityKind, string> = {
+  logs: "Logs",
+  metrics: "Metrics",
+  distributed_tracing: "Distributed Tracing",
+  opentelemetry: "OpenTelemetry",
+};

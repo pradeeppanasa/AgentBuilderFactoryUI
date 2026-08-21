@@ -109,6 +109,15 @@ export interface WizardDraft {
   // Step 5 — Behaviour
   trigger: TriggerConfig;
   output_format: "text" | "json" | "markdown" | "structured";
+  // TS02-A-01: previously there was no field to hold this at all, so
+  // mapOutputFormat() (pages/AgentWizard.tsx) always sent
+  // schema_definition: null regardless of output_format — the playground's
+  // mock reply (which shapes itself from the agent's own output_schema)
+  // had nothing to shape from and silently fell back to generic text.
+  // Raw JSON text, not a parsed object — validated/parsed only at submit
+  // time (see mapOutputFormat) so an in-progress edit never fights the
+  // input mid-keystroke.
+  output_json_schema: string;
   access: AccessConfig;
 
   // Step 6 — Orchestration
@@ -158,6 +167,7 @@ export function defaultWizardDraft(): WizardDraft {
 
     trigger: defaultTriggerConfig(),
     output_format: "text",
+    output_json_schema: "",
     access: defaultAccessConfig(),
 
     parent_orchestrator_id: null,

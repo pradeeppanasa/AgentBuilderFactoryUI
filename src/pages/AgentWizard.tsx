@@ -64,7 +64,7 @@ function toCreateAgentRequest(draft: WizardDraft): CreateAgentRequest {
       kb_id: draft.knowledge_bases[0]?.resource_id ?? null,
       guardrail_policy_id: draft.guardrail_policy?.resource_id ?? null,
       tool_instances: draft.tools.map((t) => toolInstanceDefaults(t.resource_id)),
-      output_schema: mapOutputFormat(draft.output_format),
+      output_schema: mapOutputFormat(draft.output_format, draft.output_json_schema),
     },
   };
 }
@@ -82,14 +82,35 @@ function toolInstanceDefaults(connectorId: string): ToolInstanceConfig {
   };
 }
 
-function mapOutputFormat(format: WizardDraft["output_format"]): AgentConfiguration["output_schema"] {
+function mapOutputFormat(
+  format: WizardDraft["output_format"],
+  jsonSchemaText: string,
+): AgentConfiguration["output_schema"] {
   if (format === "text") return null;
+  // TS02-A-01: schema_definition was previously always null — the wizard
+  // had no field to collect it, so the Playground's mock mode (which
+  // shapes its fake reply from the agent's own output_schema) always fell
+  // back to generic text. Best-effort parse: invalid/empty JSON silently
+  // yields null rather than blocking the save — Step5Behaviour already
+  // shows an inline "not valid JSON" warning for that case.
+  let schemaDefinition: Record<string, unknown> | null = null;
+  const trimmed = jsonSchemaText.trim();
+  if (trimmed) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        schemaDefinition = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Invalid JSON — leave schemaDefinition as null.
+    }
+  }
   return {
     // "structured" has no direct match in the existing OutputSchemaConfig
     // enum (none|json|xml|markdown) — treated as json, the closest
     // schema-validated option, until the backend adds a real structured type.
     format: format === "structured" ? "json" : format,
-    schema_definition: null,
+    schema_definition: schemaDefinition,
     strict_mode: true,
     max_retries: 2,
     fallback_on_max_retries: "return_error",
@@ -141,7 +162,7 @@ export default function AgentWizard() {
           kb_id: draft.knowledge_bases[0]?.resource_id ?? null,
           guardrail_policy_id: draft.guardrail_policy?.resource_id ?? null,
           tool_instances: draft.tools.map((t) => toolInstanceDefaults(t.resource_id)),
-          output_schema: mapOutputFormat(draft.output_format),
+          output_schema: mapOutputFormat(draft.output_format, draft.output_json_schema),
         },
       });
       return agentId;
